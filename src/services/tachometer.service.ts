@@ -11,8 +11,7 @@ export class TachometerService {
   private updateFrame: number | null = null;
   private buf = new Float32Array(2048);
   
-  // Smoothing
-  private smoothedRpm = 0;
+  private worker: Worker | null = null;
 
   get isActive(): boolean {
     return this._isActive;
@@ -38,8 +37,6 @@ export class TachometerService {
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 2048;
       
-      // Filtro Pasa-Banda (Bandpass) para reducir ruido del viento (frecuencias altas)
-      // y resonancias subsónicas. Centrado en ~100Hz (6000 RPM de 1 cilindro = 100Hz)
       const biquadFilter = this.audioContext.createBiquadFilter();
       biquadFilter.type = 'bandpass';
       biquadFilter.frequency.value = 120;
@@ -49,6 +46,13 @@ export class TachometerService {
       this.source.connect(biquadFilter);
       biquadFilter.connect(this.analyser);
       
+      this.worker = new Worker(new URL('../workers/tachometer.worker.ts', import.meta.url), { type: 'module' });
+      this.worker.onmessage = (e: MessageEvent) => {
+        if (e.data.rpm !== undefined) {
+          this.listeners.forEach(cb => cb(e.data.rpm));
+        }
+      };
+
       this._isActive = true;
       this.loop();
     } catch (err) {
@@ -78,6 +82,10 @@ export class TachometerService {
       this.audioContext.close();
       this.audioContext = null;
     }
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+    }
   }
 
   destroy(): void {
@@ -86,92 +94,26 @@ export class TachometerService {
   }
 
   private loop = (): void => {
-    if (!this._isActive || !this.analyser || !this.audioContext) return;
+    if (!this._isActive || !this.analyser || !this.audioContext || !this.worker) return;
 
     this.analyser.getFloatTimeDomainData(this.buf);
-    const hz = this.autoCorrelate(this.buf, this.audioContext.sampleRate);
     
-    if (hz !== -1) {
-      // Leer el número de cilindros desde localStorage (AppSettings)
-      let cylinders = 1;
-      try {
-        const stored = localStorage.getItem('motospeed_settings');
-        if (stored) {
-          const s = JSON.parse(stored);
-          if (s.engineCylinders) cylinders = s.engineCylinders;
-        }
-      } catch (e) {}
-
-      // Multiplicador:
-      // 4 tiempos 1 cil = 1 explosión cada 2 vueltas -> 1Hz = 60 exp/min = 120 RPM
-      // 2 cil = 1 explosión cada 1 vuelta -> 1Hz = 60 RPM
-      // 3 cil = 1 explosión cada 0.66 vueltas -> 1Hz = 40 RPM
-      // 4 cil = 1 explosión cada 0.5 vueltas -> 1Hz = 30 RPM
-      const multiplier = 120 / cylinders;
-      
-      const targetRpm = hz * multiplier;
-      
-      // Filtrar lecturas ridículas (ej. > 16000 RPM)
-      if (targetRpm > 500 && targetRpm < 16000) {
-        // Suavizado (Low Pass Filter)
-        this.smoothedRpm = this.smoothedRpm + (targetRpm - this.smoothedRpm) * 0.1;
-        this.listeners.forEach(cb => cb(this.smoothedRpm));
+    let cylinders = 1;
+    try {
+      const stored = localStorage.getItem('motospeed_settings');
+      if (stored) {
+        const s = JSON.parse(stored);
+        if (s.engineCylinders) cylinders = s.engineCylinders;
       }
-    } else {
-      // Si no hay señal, caer lentamente a 0
-      this.smoothedRpm = this.smoothedRpm * 0.95;
-      if (this.smoothedRpm < 100) this.smoothedRpm = 0;
-      this.listeners.forEach(cb => cb(this.smoothedRpm));
-    }
+    } catch (e) {}
+
+    // Enviar buffer al worker, sin transferir para evitar perder referencia (buf es reutilizable)
+    this.worker.postMessage({
+      buf: this.buf,
+      sampleRate: this.audioContext.sampleRate,
+      cylinders
+    });
 
     this.updateFrame = requestAnimationFrame(this.loop);
   };
-
-  private autoCorrelate(buf: Float32Array, sampleRate: number): number {
-    let SIZE = buf.length;
-    let rms = 0;
-
-    for (let i = 0; i < SIZE; i++) {
-      const val = buf[i];
-      rms += val * val;
-    }
-    rms = Math.sqrt(rms / SIZE);
-    if (rms < 0.01) return -1; // Not enough signal
-
-    let r1 = 0, r2 = SIZE - 1, thres = 0.2;
-    for (let i = 0; i < SIZE / 2; i++) {
-      if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-    }
-    for (let i = 1; i < SIZE / 2; i++) {
-      if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
-    }
-
-    buf = buf.subarray(r1, r2);
-    SIZE = buf.length;
-
-    const c = new Float32Array(SIZE);
-    for (let i = 0; i < SIZE; i++) {
-      for (let j = 0; j < SIZE - i; j++) {
-        c[i] = c[i] + buf[j] * buf[j + i];
-      }
-    }
-
-    let d = 0;
-    while (c[d] > c[d + 1]) d++;
-    let maxval = -1, maxpos = -1;
-    for (let i = d; i < SIZE; i++) {
-      if (c[i] > maxval) {
-        maxval = c[i];
-        maxpos = i;
-      }
-    }
-    let T0 = maxpos;
-
-    const x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-    const a = (x1 + x3 - 2 * x2) / 2;
-    const b = (x3 - x1) / 2;
-    if (a) T0 = T0 - b / (2 * a);
-
-    return sampleRate / T0;
-  }
 }

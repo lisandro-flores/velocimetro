@@ -6,6 +6,7 @@ import { AlertService } from './services/alert.service';
 import { TelemetryService } from './services/telemetry.service';
 import { BatteryService } from './services/battery.service';
 import { TachometerService } from './services/tachometer.service';
+import { OBD2Service } from './services/obd2.service';
 
 import { TripPanelComponent } from './components/trip-panel';
 import { HistoryComponent } from './components/history';
@@ -31,6 +32,7 @@ export class App {
   private telemetry = new TelemetryService();
   private battery = new BatteryService();
   private tachometer = new TachometerService();
+  private obd2 = new OBD2Service();
 
   // Componentes
   private tripPanel!: TripPanelComponent;
@@ -163,6 +165,17 @@ export class App {
     if (this.deferredPrompt) {
       this.settings.setInstallAvailable(true);
     }
+    
+    this.settings.onObd2ConnectClick = async () => {
+      try {
+        await this.obd2.connect();
+        this.showGlobalStatus('OBD2 Conectado con éxito', 'warning');
+      } catch (err) {
+        console.error(err);
+        this.showGlobalStatus('Error al conectar OBD2', 'error');
+        throw err;
+      }
+    };
 
     // Navbar
     this.navbar = new NavbarComponent(this.navbarEl);
@@ -187,7 +200,12 @@ export class App {
       try {
         this.trip.processGpsData(data);
         this.alert.checkSpeed(data.speed);
-        this.dashboard.updateGps(data);
+        
+        // Si no hay OBD2, usamos GPS para la UI
+        if (!this.obd2.isConnected) {
+          this.dashboard.updateGps(data);
+        }
+        
         this.dashboard.updateTrip(this.trip.data);
       } catch (error) {
         console.error('Error al procesar datos GPS:', error);
@@ -204,9 +222,23 @@ export class App {
 
     this.tachometer.onUpdate((rpm) => {
       try {
-        this.dashboard.updateRpm(rpm);
+        // Si no hay OBD2, usamos audio FFT para la UI
+        if (!this.obd2.isConnected) {
+          this.dashboard.updateRpm(rpm);
+        }
       } catch (error) {
         console.error('Error al actualizar tacómetro:', error);
+      }
+    });
+
+    this.obd2.onUpdate((data) => {
+      try {
+        this.dashboard.updateRpm(data.rpm);
+        // GPS Service emite speed en m/s, Dashboard asume que `data.speed` que le entra es m/s.
+        // OBD2 emite km/h, por lo tanto dividimos por 3.6 para estandarizar.
+        this.dashboard.updateGps({ speed: data.speed / 3.6, altitude: 0, accuracy: 0, heading: 0 });
+      } catch (error) {
+        console.error('Error al actualizar OBD2:', error);
       }
     });
 
@@ -362,6 +394,7 @@ export class App {
     this.dashboard.destroy();
     this.telemetry.destroy();
     this.battery.destroy();
+    this.obd2.destroy();
     if (this.updateInterval) clearInterval(this.updateInterval);
   }
 }

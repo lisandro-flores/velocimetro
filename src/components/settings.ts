@@ -11,6 +11,7 @@ export class SettingsComponent {
 
   public onChange: ((settings: AppSettings) => void) | null = null;
   public onInstallClick: (() => void) | null = null;
+  public onObd2ConnectClick: (() => Promise<void>) | null = null;
 
   constructor(container: HTMLElement, settings: AppSettings) {
     this.container = container;
@@ -217,6 +218,19 @@ export class SettingsComponent {
               </button>
             </div>
           </div>
+
+          <!-- Nuevo Botón OBD2 -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-label" style="color: #00ffff;">Conexión OBD2 (Bluetooth)</span>
+              <span class="setting-desc">Conectar a ECU para alta precisión</span>
+            </div>
+            <div class="setting-control">
+              <button class="btn btn-outline btn-sm" id="setting-obd2-btn">
+                Conectar
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="settings-footer">
@@ -242,6 +256,7 @@ export class SettingsComponent {
     const layoutEl = this.container.querySelector('#setting-layout') as HTMLSelectElement;
     const engineEl = this.container.querySelector('#setting-engine') as HTMLSelectElement;
     const installBtn = this.container.querySelector('#setting-install-btn') as HTMLButtonElement;
+    const obd2Btn = this.container.querySelector('#setting-obd2-btn') as HTMLButtonElement;
 
     unitEl.addEventListener('change', () => {
       this.settings.unit = unitEl.value as 'kmh' | 'mph';
@@ -310,6 +325,20 @@ export class SettingsComponent {
 
     installBtn?.addEventListener('click', () => {
       this.onInstallClick?.();
+    });
+
+    obd2Btn?.addEventListener('click', async () => {
+      if (this.onObd2ConnectClick) {
+        try {
+          obd2Btn.textContent = 'Conectando...';
+          await this.onObd2ConnectClick();
+          obd2Btn.textContent = 'Conectado';
+          obd2Btn.classList.add('btn-success');
+        } catch (e) {
+          obd2Btn.textContent = 'Fallo';
+          setTimeout(() => obd2Btn.textContent = 'Conectar', 2000);
+        }
+      }
     });
   }
 
