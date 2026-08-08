@@ -4,6 +4,8 @@ import { TripService } from './services/trip.service';
 import { StorageService } from './services/storage.service';
 import { WakeLockService } from './services/wakelock.service';
 import { AlertService } from './services/alert.service';
+import { TelemetryService } from './services/telemetry.service';
+import { BatteryService } from './services/battery.service';
 
 import { SpeedometerComponent } from './components/speedometer';
 import { TripPanelComponent } from './components/trip-panel';
@@ -11,6 +13,7 @@ import { CompassComponent } from './components/compass';
 import { HistoryComponent } from './components/history';
 import { SettingsComponent } from './components/settings';
 import { NavbarComponent } from './components/navbar';
+import { DashboardComponent } from './components/dashboard';
 
 import type { TabId, AppSettings } from './utils/constants';
 
@@ -26,6 +29,8 @@ export class App {
   private storage = new StorageService();
   private wakeLock = new WakeLockService();
   private alert = new AlertService();
+  private telemetry = new TelemetryService();
+  private battery = new BatteryService();
 
   // Componentes
   private speedometer!: SpeedometerComponent;
@@ -34,6 +39,7 @@ export class App {
   private history!: HistoryComponent;
   private settings!: SettingsComponent;
   private navbar!: NavbarComponent;
+  private dashboard!: DashboardComponent;
 
   // Estado
 
@@ -76,6 +82,7 @@ export class App {
   private createViewContainers(): void {
     this.contentEl.innerHTML = `
       <div class="view" id="view-speed"></div>
+      <div class="view" id="view-dashboard" style="display:none"></div>
       <div class="view" id="view-trip" style="display:none"></div>
       <div class="view" id="view-compass" style="display:none"></div>
       <div class="view" id="view-history" style="display:none"></div>
@@ -87,6 +94,11 @@ export class App {
     // Speedometer
     this.speedometer = new SpeedometerComponent(
       document.getElementById('view-speed')!
+    );
+
+    // Dashboard
+    this.dashboard = new DashboardComponent(
+      document.getElementById('view-dashboard')!
     );
 
     // Trip Panel
@@ -161,6 +173,14 @@ export class App {
       }
     });
 
+    this.telemetry.onUpdate((data) => {
+      this.dashboard.updateTelemetry(data);
+    });
+
+    this.battery.onUpdate((level, charging) => {
+      this.dashboard.updateBattery(level, charging);
+    });
+
     this.gps.onError((error) => {
       console.error('GPS error:', error.message);
       // Podríamos mostrar un toast, pero por ahora log
@@ -180,6 +200,7 @@ export class App {
     // Iniciar GPS y brújula
     this.gps.start();
     this.compassService.start();
+    this.telemetry.start();
   }
 
   private applySettings(s: AppSettings): void {
@@ -187,6 +208,7 @@ export class App {
     this.speedometer.setUnit(s.unit);
     this.tripPanel.setUnit(s.unit);
     this.history.setUnit(s.unit);
+    this.dashboard.setUnit(s.unit);
 
     // Alert
     this.alert.speedLimit = s.speedLimit;
@@ -237,6 +259,9 @@ export class App {
     this.alert.destroy();
     this.speedometer.destroy();
     this.compass.destroy();
+    this.dashboard.destroy();
+    this.telemetry.destroy();
+    this.battery.destroy();
     if (this.updateInterval) clearInterval(this.updateInterval);
   }
 }
