@@ -36,6 +36,7 @@ export class DashboardComponent {
 
   private rpmFillEl!: SVGPathElement;
   private rpmTextEl!: HTMLElement;
+  private maxSpeedValueEl!: HTMLElement;
 
   // Layout elements
   private dashboardView!: HTMLElement;
@@ -43,6 +44,7 @@ export class DashboardComponent {
 
   private clockInterval: number | null = null;
   public onCalibrate: (() => void) | null = null;
+  public onExit: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -99,6 +101,10 @@ export class DashboardComponent {
       };
       // elapsedTime is in seconds
       this.touringTimeEl.textContent = formatTime(data.elapsedTime || 0);
+    }
+
+    if (this.maxSpeedValueEl && data.maxSpeed !== undefined) {
+      this.maxSpeedValueEl.textContent = (data.maxSpeed * (this.unit === 'kmh' ? 3.6 : 2.23694)).toFixed(0);
     }
   }
 
@@ -211,7 +217,10 @@ export class DashboardComponent {
 
         <!-- Top Bar: Clock, GPS, Battery -->
         <div class="dash-top-bar">
-          <div class="dash-clock-group">
+          <button class="btn btn-ghost btn-sm" id="dash-exit-btn" style="padding: 4px 8px; color: var(--text-muted);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+          <div class="dash-clock-group" style="margin-left: auto;">
             <span class="dash-gps-dot dash-gps-weak" id="dash-gps-dot"></span>
             <span class="dash-clock" id="dash-clock">--:--</span>
           </div>
@@ -272,6 +281,9 @@ export class DashboardComponent {
 
             <div class="dash-speed-value" id="dash-speed">0</div>
             <div class="dash-speed-unit" id="dash-speed-unit">km/h</div>
+            <div class="dash-max-speed" style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: -5px; font-weight: 600; letter-spacing: 1px;">
+              MAX: <span id="dash-max-speed-value">0</span>
+            </div>
             <div class="dash-info-row">
               <div class="dash-info-item">
                 <span class="dash-info-label">${t('dash.trip')}</span>
@@ -352,6 +364,16 @@ export class DashboardComponent {
 
     this.rpmFillEl = this.container.querySelector('#dash-rpm-fill') as SVGPathElement;
     this.rpmTextEl = this.container.querySelector('#dash-rpm-text') as HTMLElement;
+    this.maxSpeedValueEl = this.container.querySelector('#dash-max-speed-value') as HTMLElement;
+
+    // Exit Button
+    const exitBtn = this.container.querySelector('#dash-exit-btn');
+    exitBtn?.addEventListener('click', () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(err => console.warn(err));
+      }
+      this.onExit?.();
+    });
 
     // Start Button (Request Microphones & Sensors)
     this.updateClock();

@@ -24,7 +24,7 @@ export class SettingsComponent {
     this.render();
   }
 
-  setInstallAvailable(available: boolean): void {
+  setInstallAvailable(_available: boolean): void {
     // The user requested it to always be available.
     // We can leave this method intact in case we want to use it later,
     // but it won't hide the row anymore.
