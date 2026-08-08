@@ -157,6 +157,8 @@ export class App {
           this.settings.setInstallAvailable(false);
           this.deferredPrompt = null;
         }
+      } else {
+        alert("La instalación automática no está disponible. Usa la opción 'Añadir a la pantalla de inicio' en el menú de Chrome, o asegúrate de estar accediendo mediante HTTPS.");
       }
     };
     if (this.deferredPrompt) {

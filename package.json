@@ -12,6 +12,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.0",
     "@types/web-bluetooth": "^0.0.21",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "jsdom": "^29.1.1",
     "puppeteer": "^25.5.0",
     "typescript": "~6.0.2",
