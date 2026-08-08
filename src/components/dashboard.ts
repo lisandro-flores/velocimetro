@@ -31,11 +31,11 @@ export class DashboardComponent {
   private bottomTimeEl!: HTMLElement;
   private touringCompassArrow!: HTMLElement;
   private touringCompassText!: HTMLElement;
-
-  private rpmFillEl!: HTMLElement;
+  private rpmSegmentsContainer!: HTMLElement;
   private rpmTextEl!: HTMLElement;
   private rpmTicksEl!: HTMLElement;
   private maxSpeedValueEl!: HTMLElement;
+  private totalSegments = 32;
 
   // Layout elements
   private dashboardView!: HTMLElement;
@@ -257,7 +257,7 @@ export class DashboardComponent {
           </div>
         </div>
 
-        <!-- Top Horizontal RPM Rev-Counter Bar (TFT MotoGP style) -->
+        <!-- Top Segmented LED RPM Bar Chart (Superbike TFT) -->
         <div class="dash-rpm-bar-hub">
           <div class="dash-rpm-bar-top">
             <div class="dash-rpm-numeric">
@@ -266,9 +266,7 @@ export class DashboardComponent {
             </div>
             <div class="dash-rpm-scale" id="dash-rpm-ticks"></div>
           </div>
-          <div class="dash-rpm-track-wrap">
-            <div class="dash-rpm-track-fill" id="dash-rpm-fill"></div>
-          </div>
+          <div class="dash-rpm-segments" id="dash-rpm-segments"></div>
         </div>
 
         <!-- Main Area (Speed + Telemetry) -->
@@ -376,11 +374,12 @@ export class DashboardComponent {
     this.touringCompassArrow = this.container.querySelector('.touring-compass-arrow') as HTMLElement;
     this.touringCompassText = this.container.querySelector('#dash-touring-compass-text') as HTMLElement;
 
-    this.rpmFillEl = this.container.querySelector('#dash-rpm-fill') as HTMLElement;
+    this.rpmSegmentsContainer = this.container.querySelector('#dash-rpm-segments') as HTMLElement;
     this.rpmTextEl = this.container.querySelector('#dash-rpm-text') as HTMLElement;
     this.rpmTicksEl = this.container.querySelector('#dash-rpm-ticks') as HTMLElement;
     this.maxSpeedValueEl = this.container.querySelector('#dash-max-speed-value') as HTMLElement;
 
+    this.initRpmSegments();
     this.renderRpmTicks();
 
     // Exit Button
@@ -433,6 +432,15 @@ export class DashboardComponent {
     });
   }
 
+  private initRpmSegments(): void {
+    if (!this.rpmSegmentsContainer) return;
+    let segHtml = '';
+    for (let i = 0; i < this.totalSegments; i++) {
+      segHtml += `<div class="dash-rpm-seg" id="dash-rpm-seg-${i}"></div>`;
+    }
+    this.rpmSegmentsContainer.innerHTML = segHtml;
+  }
+
   private renderRpmTicks(): void {
     if (!this.rpmTicksEl) return;
     const maxK = this.maxRpm / 1000;
@@ -446,24 +454,39 @@ export class DashboardComponent {
   }
 
   updateRpm(rpm: number): void {
-    if (!this.rpmFillEl || !this.rpmTextEl) return;
+    if (!this.rpmSegmentsContainer || !this.rpmTextEl) return;
     
     this.rpmTextEl.textContent = Math.round(rpm).toString();
 
     const clampedRpm = Math.max(0, Math.min(rpm, this.maxRpm));
     const percentage = clampedRpm / this.maxRpm;
-    
-    this.rpmFillEl.style.width = `${(percentage * 100).toFixed(1)}%`;
+    const activeCount = Math.round(percentage * this.totalSegments);
 
-    // Dynamic gradient color by RPM range
+    const children = this.rpmSegmentsContainer.children;
+    for (let i = 0; i < this.totalSegments; i++) {
+      const seg = children[i] as HTMLElement;
+      if (!seg) continue;
+
+      if (i < activeCount) {
+        const segRatio = i / this.totalSegments;
+        if (segRatio >= 0.88) {
+          seg.className = 'dash-rpm-seg active seg-red';
+        } else if (segRatio >= 0.65) {
+          seg.className = 'dash-rpm-seg active seg-yellow';
+        } else {
+          seg.className = 'dash-rpm-seg active seg-green';
+        }
+      } else {
+        seg.className = 'dash-rpm-seg';
+      }
+    }
+
+    // Color header badge based on redline
     if (percentage > 0.88) {
-      this.rpmFillEl.style.background = 'linear-gradient(90deg, var(--accent-green), var(--accent-yellow) 70%, var(--accent-red) 90%)';
       this.rpmTextEl.style.color = 'var(--accent-red)';
     } else if (percentage > 0.65) {
-      this.rpmFillEl.style.background = 'linear-gradient(90deg, var(--accent-green), var(--accent-yellow))';
       this.rpmTextEl.style.color = 'var(--accent-yellow)';
     } else {
-      this.rpmFillEl.style.background = 'var(--accent-green)';
       this.rpmTextEl.style.color = 'var(--accent-green)';
     }
   }

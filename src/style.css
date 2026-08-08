@@ -1508,24 +1508,39 @@ body {
   font-weight: 800;
 }
 
-.dash-rpm-track-wrap {
+.dash-rpm-segments {
+  display: flex;
+  gap: 3px;
   width: 100%;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  height: 14px;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
-.dash-rpm-track-fill {
+.dash-rpm-seg {
+  flex: 1;
   height: 100%;
-  width: 0%;
-  background: var(--accent-green);
-  transition: width 0.08s linear, background 0.2s ease;
-  border-radius: 3px;
-  box-shadow: 0 0 10px rgba(0, 255, 128, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  transition: background 0.04s ease, box-shadow 0.04s ease;
+}
+
+.dash-rpm-seg.active.seg-green {
+  background: #00e676;
+  box-shadow: 0 0 6px #00e676;
+}
+
+.dash-rpm-seg.active.seg-yellow {
+  background: #ffd600;
+  box-shadow: 0 0 8px #ffd600;
+}
+
+.dash-rpm-seg.active.seg-red {
+  background: #ff1744;
+  box-shadow: 0 0 10px #ff1744;
 }
 
 /* — Center Speed Column (Colossal Space Utilization) — */
