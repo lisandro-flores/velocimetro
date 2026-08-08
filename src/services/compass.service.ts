@@ -42,14 +42,25 @@ export class CompassService {
     }
 
     this.boundHandler = (e: DeviceOrientationEvent) => this.handleOrientation(e);
-    window.addEventListener('deviceorientation', this.boundHandler, true);
+    
+    const win = window as any;
+    if ('ondeviceorientationabsolute' in win) {
+      win.addEventListener('deviceorientationabsolute', this.boundHandler, true);
+    } else {
+      window.addEventListener('deviceorientation', this.boundHandler, true);
+    }
     this._isActive = true;
   }
 
   /** Detener brújula */
   stop(): void {
     if (this.boundHandler) {
-      window.removeEventListener('deviceorientation', this.boundHandler, true);
+      const win = window as any;
+      if ('ondeviceorientationabsolute' in win) {
+        win.removeEventListener('deviceorientationabsolute', this.boundHandler, true);
+      } else {
+        window.removeEventListener('deviceorientation', this.boundHandler, true);
+      }
       this.boundHandler = null;
     }
     this._isActive = false;
