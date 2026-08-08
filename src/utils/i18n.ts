@@ -69,6 +69,14 @@ const es: Dictionary = {
   'settings.fullscreen.off': 'Activar',
   'settings.lang.title': 'Idioma',
   'settings.lang.desc': 'Idioma de la interfaz',
+  'settings.theme.title': 'Tema Visual',
+  'settings.theme.desc': 'Claro, Oscuro o Automático',
+  'settings.theme.auto': 'Automático',
+  'settings.theme.dark': 'Oscuro',
+  'settings.theme.light': 'Claro',
+  'settings.install.title': 'Instalar Aplicación',
+  'settings.install.desc': 'Instalar como app nativa',
+  'settings.install.btn': 'Instalar App',
   'settings.desc': 'Velocímetro PWA para motociclismo',
 };
 
@@ -139,6 +147,14 @@ const en: Dictionary = {
   'settings.fullscreen.off': 'Enable',
   'settings.lang.title': 'Language',
   'settings.lang.desc': 'Interface language',
+  'settings.theme.title': 'Visual Theme',
+  'settings.theme.desc': 'Light, Dark, or Auto',
+  'settings.theme.auto': 'Auto',
+  'settings.theme.dark': 'Dark',
+  'settings.theme.light': 'Light',
+  'settings.install.title': 'Install App',
+  'settings.install.desc': 'Install as native app',
+  'settings.install.btn': 'Install App',
   'settings.desc': 'Motorcycle PWA Speedometer',
 };
 

@@ -65,6 +65,39 @@
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* === Light Theme Overrides === */
+body.theme-light {
+  /* Colores base */
+  --bg-primary: #f5f5f7;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f0f0f0;
+  --bg-input: #e0e0e0;
+
+  /* Acentos (ligeramente más oscuros para contraste sobre blanco) */
+  --accent-cyan: #0097a7;
+  --accent-cyan-dim: #0097a720;
+  --accent-orange: #e65100;
+  --accent-orange-dim: #e6510020;
+  --accent-red: #d50000;
+  --accent-green: #00c853;
+  --accent-yellow: #f57f17;
+
+  /* Texto */
+  --text-primary: #1d1d1f;
+  --text-secondary: #424245;
+  --text-muted: #86868b;
+
+  /* Bordes */
+  --border-color: #d2d2d7;
+  --border-glow: #0097a730;
+
+  /* Sombras */
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-glow-cyan: 0 0 20px rgba(0, 151, 167, 0.15);
+  --shadow-glow-orange: 0 0 20px rgba(230, 81, 0, 0.15);
+}
+
 /* === Reset & Base === */
 *,
 *::before,

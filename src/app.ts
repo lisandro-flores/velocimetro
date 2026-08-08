@@ -1,5 +1,4 @@
 import { GpsService } from './services/gps.service';
-import { CompassService } from './services/compass.service';
 import { TripService } from './services/trip.service';
 import { StorageService } from './services/storage.service';
 import { WakeLockService } from './services/wakelock.service';
@@ -7,9 +6,7 @@ import { AlertService } from './services/alert.service';
 import { TelemetryService } from './services/telemetry.service';
 import { BatteryService } from './services/battery.service';
 
-import { SpeedometerComponent } from './components/speedometer';
 import { TripPanelComponent } from './components/trip-panel';
-import { CompassComponent } from './components/compass';
 import { HistoryComponent } from './components/history';
 import { SettingsComponent } from './components/settings';
 import { NavbarComponent } from './components/navbar';
@@ -25,7 +22,6 @@ import { setLanguage } from './utils/i18n';
 export class App {
   // Servicios
   private gps = new GpsService();
-  private compassService = new CompassService();
   private trip = new TripService();
   private storage = new StorageService();
   private wakeLock = new WakeLockService();
@@ -34,16 +30,14 @@ export class App {
   private battery = new BatteryService();
 
   // Componentes
-  private speedometer!: SpeedometerComponent;
   private tripPanel!: TripPanelComponent;
-  private compass!: CompassComponent;
   private history!: HistoryComponent;
   private settings!: SettingsComponent;
   private navbar!: NavbarComponent;
   private dashboard!: DashboardComponent;
 
   // Estado
-
+  private deferredPrompt: any = null;
   private appSettings: AppSettings;
   private updateInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -63,6 +57,16 @@ export class App {
   async init(): Promise<void> {
     // Set initial language
     setLanguage(this.appSettings.language || 'es');
+    this.applyTheme(this.appSettings.nightMode);
+
+    // Escuchar invitación de instalación PWA
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+      if (this.settings) {
+        this.settings.setInstallAvailable(true);
+      }
+    });
 
     // Crear containers para cada vista
     this.createViewContainers();
@@ -77,7 +81,7 @@ export class App {
     this.applySettings(this.appSettings);
 
     // Mostrar tab inicial
-    this.switchTab('speed');
+    this.switchTab('dashboard');
 
     // Update loop para trip panel
     this.startUpdateLoop();
@@ -85,21 +89,14 @@ export class App {
 
   private createViewContainers(): void {
     this.contentEl.innerHTML = `
-      <div class="view" id="view-speed"></div>
       <div class="view" id="view-dashboard" style="display:none"></div>
       <div class="view" id="view-trip" style="display:none"></div>
-      <div class="view" id="view-compass" style="display:none"></div>
       <div class="view" id="view-history" style="display:none"></div>
       <div class="view" id="view-settings" style="display:none"></div>
     `;
   }
 
   private initComponents(): void {
-    // Speedometer
-    this.speedometer = new SpeedometerComponent(
-      document.getElementById('view-speed')!
-    );
-
     // Dashboard
     this.dashboard = new DashboardComponent(
       this.contentEl.querySelector('#view-dashboard') as HTMLElement
@@ -119,22 +116,15 @@ export class App {
     this.tripPanel.onPause = () => this.trip.pause();
     this.tripPanel.onReset = () => {
       this.trip.reset();
-      this.speedometer.resetMax();
     };
     this.tripPanel.onSave = async () => {
       const summary = this.trip.getSummary();
       if (summary.distance > 0 || summary.duration > 10) {
         await this.storage.saveTrip(summary);
         this.trip.reset();
-        this.speedometer.resetMax();
         this.refreshHistory();
       }
     };
-
-    // Compass
-    this.compass = new CompassComponent(
-      document.getElementById('view-compass')!
-    );
 
     // History
     this.history = new HistoryComponent(
@@ -154,11 +144,20 @@ export class App {
       document.getElementById('view-settings')!,
       this.appSettings
     );
-    this.settings.onChange = (newSettings) => {
-      this.appSettings = newSettings;
-      this.storage.saveSettings(newSettings);
-      this.applySettings(newSettings);
+    this.settings.onChange = (s) => this.saveSettings(s);
+    this.settings.onInstallClick = async () => {
+      if (this.deferredPrompt) {
+        this.deferredPrompt.prompt();
+        const { outcome } = await this.deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          this.settings.setInstallAvailable(false);
+          this.deferredPrompt = null;
+        }
+      }
     };
+    if (this.deferredPrompt) {
+      this.settings.setInstallAvailable(true);
+    }
 
     // Navbar
     this.navbar = new NavbarComponent(this.navbarEl);
@@ -181,17 +180,9 @@ export class App {
   private initServices(): void {
     // GPS callbacks
     this.gps.onUpdate((data) => {
-      this.speedometer.setSpeed(data.speed);
-      this.speedometer.setHeading(data.heading);
       this.trip.processGpsData(data);
       this.alert.checkSpeed(data.speed);
       this.dashboard.updateGps(data);
-
-      // Actualizar brújula con heading GPS si no hay sensor
-      if (data.heading !== null) {
-        this.compassService.updateFromGps(data.heading);
-        this.compass.setHeading(data.heading);
-      }
     });
 
     this.telemetry.onUpdate((data) => {
@@ -204,13 +195,6 @@ export class App {
 
     this.gps.onError((error) => {
       console.error('GPS error:', error.message);
-      // Podríamos mostrar un toast, pero por ahora log
-    });
-
-    // Compass service
-    this.compassService.onUpdate((heading) => {
-      this.compass.setHeading(heading);
-      this.speedometer.setHeading(heading);
     });
 
     // Alert visual
@@ -218,9 +202,8 @@ export class App {
       this.alertOverlay.classList.toggle('alert-active', isAlerting);
     });
 
-    // Iniciar GPS y brújula
+    // Iniciar GPS y telemetría
     this.gps.start();
-    this.compassService.start();
     this.telemetry.start();
   }
 
@@ -229,7 +212,6 @@ export class App {
     const langChanged = this.appSettings.language !== s.language;
     if (langChanged) {
       setLanguage(s.language);
-      this.speedometer.updateLanguage?.();
       this.tripPanel.updateLanguage?.();
       this.history.updateLanguage?.();
       this.dashboard.updateLanguage?.();
@@ -237,8 +219,10 @@ export class App {
       this.navbar.updateLanguage?.();
     }
 
+    // Aplicar Tema
+    this.applyTheme(s.nightMode);
+
     // Unidad
-    this.speedometer.setUnit(s.unit);
     this.tripPanel.setUnit(s.unit);
     this.history.setUnit(s.unit);
     this.dashboard.setUnit(s.unit);
@@ -285,14 +269,36 @@ export class App {
     }, 1000);
   }
 
+  private saveSettings(s: AppSettings): void {
+    this.applySettings(s);
+    this.appSettings = { ...s };
+    this.storage.saveSettings(this.appSettings);
+  }
+
+  private applyTheme(nightMode: 'auto' | 'on' | 'off'): void {
+    const body = document.body;
+    let isLight = false;
+
+    if (nightMode === 'off') {
+      isLight = true;
+    } else if (nightMode === 'auto') {
+      const hour = new Date().getHours();
+      // Light theme between 6 AM and 6 PM (18:00)
+      isLight = hour >= 6 && hour < 18;
+    }
+
+    if (isLight) {
+      body.classList.add('theme-light');
+    } else {
+      body.classList.remove('theme-light');
+    }
+  }
+
   destroy(): void {
     this.gps.destroy();
-    this.compassService.destroy();
     this.trip.destroy();
     this.wakeLock.destroy();
     this.alert.destroy();
-    this.speedometer.destroy();
-    this.compass.destroy();
     this.dashboard.destroy();
     this.telemetry.destroy();
     this.battery.destroy();

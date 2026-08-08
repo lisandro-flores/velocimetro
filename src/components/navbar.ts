@@ -7,7 +7,7 @@ import { t } from '../utils/i18n';
  */
 export class NavbarComponent {
   private container: HTMLElement;
-  private activeTab: TabId = 'speed';
+  private activeTab: TabId = 'dashboard';
 
   public onTabChange: ((tab: TabId) => void) | null = null;
 

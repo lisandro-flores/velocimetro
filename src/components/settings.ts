@@ -8,8 +8,10 @@ import { t } from '../utils/i18n';
 export class SettingsComponent {
   private container: HTMLElement;
   private settings: AppSettings;
+  private canInstall = false;
 
   public onChange: ((settings: AppSettings) => void) | null = null;
+  public onInstallClick: (() => void) | null = null;
 
   constructor(container: HTMLElement, settings: AppSettings) {
     this.container = container;
@@ -21,6 +23,14 @@ export class SettingsComponent {
   updateSettings(settings: AppSettings): void {
     this.settings = { ...settings };
     this.render();
+  }
+
+  setInstallAvailable(available: boolean): void {
+    this.canInstall = available;
+    const installRow = this.container.querySelector('#setting-install-row') as HTMLElement;
+    if (installRow) {
+      installRow.style.display = available ? 'flex' : 'none';
+    }
   }
 
   destroy(): void {
@@ -104,6 +114,20 @@ export class SettingsComponent {
 
           <div class="setting-item">
             <div class="setting-info">
+              <span class="setting-label">${t('settings.theme.title')}</span>
+              <span class="setting-desc">${t('settings.theme.desc')}</span>
+            </div>
+            <div class="setting-control">
+              <select id="setting-theme" class="setting-select">
+                <option value="auto" ${this.settings.nightMode === 'auto' ? 'selected' : ''}>${t('settings.theme.auto')}</option>
+                <option value="on" ${this.settings.nightMode === 'on' ? 'selected' : ''}>${t('settings.theme.dark')}</option>
+                <option value="off" ${this.settings.nightMode === 'off' ? 'selected' : ''}>${t('settings.theme.light')}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
               <span class="setting-label">${t('settings.wakelock.title')}</span>
               <span class="setting-desc">${t('settings.wakelock.desc')}</span>
             </div>
@@ -139,6 +163,18 @@ export class SettingsComponent {
               </select>
             </div>
           </div>
+
+          <div class="setting-item" id="setting-install-row" style="display: ${this.canInstall ? 'flex' : 'none'};">
+            <div class="setting-info">
+              <span class="setting-label" style="color: var(--accent-cyan);">${t('settings.install.title')}</span>
+              <span class="setting-desc">${t('settings.install.desc')}</span>
+            </div>
+            <div class="setting-control">
+              <button class="btn btn-primary btn-sm" id="setting-install-btn">
+                ${t('settings.install.btn')}
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="settings-footer">
@@ -160,6 +196,8 @@ export class SettingsComponent {
     const wakelockEl = this.container.querySelector('#setting-wakelock') as HTMLInputElement;
     const fullscreenBtn = this.container.querySelector('#setting-fullscreen') as HTMLButtonElement;
     const langEl = this.container.querySelector('#setting-lang') as HTMLSelectElement;
+    const themeEl = this.container.querySelector('#setting-theme') as HTMLSelectElement;
+    const installBtn = this.container.querySelector('#setting-install-btn') as HTMLButtonElement;
 
     unitEl.addEventListener('change', () => {
       this.settings.unit = unitEl.value as 'kmh' | 'mph';
@@ -186,6 +224,11 @@ export class SettingsComponent {
       this.emitChange();
     });
 
+    themeEl.addEventListener('change', () => {
+      this.settings.nightMode = themeEl.value as 'auto' | 'on' | 'off';
+      this.emitChange();
+    });
+
     langEl.addEventListener('change', () => {
       this.settings.language = langEl.value as 'es' | 'en';
       this.emitChange();
@@ -199,6 +242,10 @@ export class SettingsComponent {
         document.documentElement.requestFullscreen();
         fullscreenBtn.textContent = t('settings.fullscreen.on');
       }
+    });
+
+    installBtn?.addEventListener('click', () => {
+      this.onInstallClick?.();
     });
   }
 
