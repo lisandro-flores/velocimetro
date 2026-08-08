@@ -5,6 +5,7 @@ import { WakeLockService } from './services/wakelock.service';
 import { AlertService } from './services/alert.service';
 import { TelemetryService } from './services/telemetry.service';
 import { BatteryService } from './services/battery.service';
+import { TachometerService } from './services/tachometer.service';
 
 import { TripPanelComponent } from './components/trip-panel';
 import { HistoryComponent } from './components/history';
@@ -28,6 +29,7 @@ export class App {
   private alert = new AlertService();
   private telemetry = new TelemetryService();
   private battery = new BatteryService();
+  private tachometer = new TachometerService();
 
   // Componentes
   private tripPanel!: TripPanelComponent;
@@ -97,12 +99,21 @@ export class App {
   }
 
   private initComponents(): void {
-    // Dashboard
+    // Initialize Dashboard
     this.dashboard = new DashboardComponent(
       this.contentEl.querySelector('#view-dashboard') as HTMLElement
     );
     this.dashboard.onCalibrate = () => {
       this.telemetry.calibrate();
+    };
+
+    // Inyectar método start del tacómetro al dashboard para pedir permisos tras click
+    (this.dashboard as any).onStartRequested = async () => {
+      try {
+        await this.tachometer.start();
+      } catch (err) {
+        console.warn('Microphone permission denied or error', err);
+      }
     };
 
     // Trip Panel
@@ -182,11 +193,15 @@ export class App {
     this.gps.onUpdate((data) => {
       this.trip.processGpsData(data);
       this.alert.checkSpeed(data.speed);
-      this.dashboard.updateGps(data);
+      this.dashboard.updateTrip(this.trip.data);
     });
 
     this.telemetry.onUpdate((data) => {
       this.dashboard.updateTelemetry(data);
+    });
+
+    this.tachometer.onUpdate((rpm) => {
+      this.dashboard.updateRpm(rpm);
     });
 
     this.battery.onUpdate((level, charging) => {

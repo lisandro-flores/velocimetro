@@ -34,6 +34,9 @@ export class DashboardComponent {
   private touringCompassArrow!: HTMLElement;
   private touringCompassText!: HTMLElement;
 
+  private rpmFillEl!: SVGPathElement;
+  private rpmTextEl!: HTMLElement;
+
   // Layout elements
   private dashboardView!: HTMLElement;
   private layout: 'sport' | 'minimalist' | 'touring' = 'sport';
@@ -253,6 +256,20 @@ export class DashboardComponent {
 
           <!-- Center: Speed -->
           <div class="dash-speed-col">
+            
+            <div class="dash-rpm-container">
+              <svg class="dash-rpm-svg" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg">
+                <!-- Outer track -->
+                <path d="M 20 110 A 100 100 0 0 1 220 110" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12" stroke-linecap="round"/>
+                <!-- Fill (314 is circumference of semi-circle r=100) -->
+                <path id="dash-rpm-fill" d="M 20 110 A 100 100 0 0 1 220 110" fill="none" stroke="var(--accent-green)" stroke-width="12" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="314" class="dash-rpm-fill"/>
+              </svg>
+              <div class="dash-rpm-text-group">
+                <span id="dash-rpm-text">0</span>
+                <span class="dash-rpm-label">RPM</span>
+              </div>
+            </div>
+
             <div class="dash-speed-value" id="dash-speed">0</div>
             <div class="dash-speed-unit" id="dash-speed-unit">km/h</div>
             <div class="dash-info-row">
@@ -330,10 +347,13 @@ export class DashboardComponent {
     this.touringDistanceEl = this.container.querySelector('#dash-touring-distance')!;
     this.touringDistUnitEl = this.container.querySelector('#dash-touring-dist-unit')!;
     this.touringTimeEl = this.container.querySelector('#dash-touring-time')!;
-    this.touringCompassArrow = this.container.querySelector('#dash-touring-compass-arrow')!;
-    this.touringCompassText = this.container.querySelector('#dash-touring-compass-text')!;
+    this.touringCompassArrow = this.container.querySelector('.touring-compass-arrow') as HTMLElement;
+    this.touringCompassText = this.container.querySelector('#dash-touring-compass-text') as HTMLElement;
 
-    // Clock updater
+    this.rpmFillEl = this.container.querySelector('#dash-rpm-fill') as SVGPathElement;
+    this.rpmTextEl = this.container.querySelector('#dash-rpm-text') as HTMLElement;
+
+    // Start Button (Request Microphones & Sensors)
     this.updateClock();
     this.clockInterval = setInterval(() => this.updateClock(), 1000);
 
@@ -370,6 +390,31 @@ export class DashboardComponent {
     calibBtn?.addEventListener('click', () => {
       this.onCalibrate?.();
     });
+  }
+
+  updateRpm(rpm: number): void {
+    if (!this.rpmFillEl || !this.rpmTextEl) return;
+    
+    // Suavizar texto
+    this.rpmTextEl.textContent = Math.round(rpm).toString();
+
+    // Animación SVG arco (0 a 12000 RPM)
+    const MAX_RPM = 12000;
+    const clampedRpm = Math.max(0, Math.min(rpm, MAX_RPM));
+    const percentage = clampedRpm / MAX_RPM;
+    
+    // dasharray = 314 (pi * 100). offset = 314 - (percentage * 314)
+    const offset = 314 - (percentage * 314);
+    this.rpmFillEl.style.strokeDashoffset = offset.toString();
+
+    // Cambiar color por rango (verde -> amarillo -> rojo)
+    if (percentage > 0.85) { // ~10k RPM
+      this.rpmFillEl.style.stroke = 'var(--accent-red)';
+    } else if (percentage > 0.65) { // ~7.8k RPM
+      this.rpmFillEl.style.stroke = 'var(--accent-yellow)';
+    } else {
+      this.rpmFillEl.style.stroke = 'var(--accent-green)';
+    }
   }
 
   private updateClock(): void {

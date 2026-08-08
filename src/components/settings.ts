@@ -8,7 +8,6 @@ import { t } from '../utils/i18n';
 export class SettingsComponent {
   private container: HTMLElement;
   private settings: AppSettings;
-  private canInstall = false;
 
   public onChange: ((settings: AppSettings) => void) | null = null;
   public onInstallClick: (() => void) | null = null;
@@ -26,11 +25,9 @@ export class SettingsComponent {
   }
 
   setInstallAvailable(available: boolean): void {
-    this.canInstall = available;
-    const installRow = this.container.querySelector('#setting-install-row') as HTMLElement;
-    if (installRow) {
-      installRow.style.display = available ? 'flex' : 'none';
-    }
+    // The user requested it to always be available.
+    // We can leave this method intact in case we want to use it later,
+    // but it won't hide the row anymore.
   }
 
   destroy(): void {
@@ -142,6 +139,21 @@ export class SettingsComponent {
 
           <div class="setting-item">
             <div class="setting-info">
+              <span class="setting-label">${t('settings.engine.title')}</span>
+              <span class="setting-desc">${t('settings.engine.desc')}</span>
+            </div>
+            <div class="setting-control">
+              <select id="setting-engine" class="setting-select">
+                <option value="1" ${this.settings.engineCylinders === 1 ? 'selected' : ''}>1</option>
+                <option value="2" ${this.settings.engineCylinders === 2 ? 'selected' : ''}>2</option>
+                <option value="3" ${this.settings.engineCylinders === 3 ? 'selected' : ''}>3</option>
+                <option value="4" ${this.settings.engineCylinders === 4 ? 'selected' : ''}>4</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
               <span class="setting-label">${t('settings.wakelock.title')}</span>
               <span class="setting-desc">${t('settings.wakelock.desc')}</span>
             </div>
@@ -178,13 +190,13 @@ export class SettingsComponent {
             </div>
           </div>
 
-          <div class="setting-item" id="setting-install-row" style="display: ${this.canInstall ? 'flex' : 'none'};">
+          <div class="setting-item" id="setting-install-row">
             <div class="setting-info">
               <span class="setting-label" style="color: var(--accent-cyan);">${t('settings.install.title')}</span>
               <span class="setting-desc">${t('settings.install.desc')}</span>
             </div>
             <div class="setting-control">
-              <button class="btn btn-primary btn-sm" id="setting-install-btn">
+              <button class="btn btn-outline btn-sm" id="setting-install-btn">
                 ${t('settings.install.btn')}
               </button>
             </div>
@@ -212,6 +224,7 @@ export class SettingsComponent {
     const langEl = this.container.querySelector('#setting-lang') as HTMLSelectElement;
     const themeEl = this.container.querySelector('#setting-theme') as HTMLSelectElement;
     const layoutEl = this.container.querySelector('#setting-layout') as HTMLSelectElement;
+    const engineEl = this.container.querySelector('#setting-engine') as HTMLSelectElement;
     const installBtn = this.container.querySelector('#setting-install-btn') as HTMLButtonElement;
 
     unitEl.addEventListener('change', () => {
@@ -246,6 +259,11 @@ export class SettingsComponent {
 
     layoutEl.addEventListener('change', () => {
       this.settings.dashboardLayout = layoutEl.value as 'sport' | 'minimalist' | 'touring';
+      this.emitChange();
+    });
+
+    engineEl.addEventListener('change', () => {
+      this.settings.engineCylinders = parseInt(engineEl.value, 10) as 1 | 2 | 3 | 4;
       this.emitChange();
     });
 

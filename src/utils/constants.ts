@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS = {
   language: 'es' as 'es' | 'en',
   /** Estilo de distribución del Tablero */
   dashboardLayout: 'sport' as 'sport' | 'minimalist' | 'touring',
+  /** Número de cilindros del motor para cálculo de RPM */
+  engineCylinders: 1 as 1 | 2 | 3 | 4,
 };
 
 export type AppSettings = typeof DEFAULT_SETTINGS;
