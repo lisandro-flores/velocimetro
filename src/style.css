@@ -1441,3 +1441,30 @@ body {
   }
 }
 
+/* — Fullscreen Mode Overrides — */
+body.is-fullscreen-dashboard .view {
+  padding: 0 !important;
+}
+
+body.is-fullscreen-dashboard .dashboard-view {
+  padding: var(--space-xs) var(--space-sm);
+  justify-content: center;
+}
+
+body.is-fullscreen-dashboard .dash-top-bar {
+  border: none;
+  background: transparent;
+  padding: 0 var(--space-sm);
+}
+
+body.is-fullscreen-dashboard .dash-main {
+  margin-top: var(--space-sm);
+}
+
+@media (orientation: landscape) {
+  body.is-fullscreen-dashboard .dash-speed-value {
+    font-size: clamp(6rem, 30vh, 12rem);
+  }
+}
+
+

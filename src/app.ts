@@ -165,8 +165,12 @@ export class App {
     document.addEventListener('fullscreenchange', () => {
       if (document.fullscreenElement) {
         this.navbarEl.style.display = 'none';
+        this.contentEl.style.paddingBottom = '0';
+        document.body.classList.add('is-fullscreen-dashboard');
       } else {
         this.navbarEl.style.display = '';
+        this.contentEl.style.paddingBottom = '';
+        document.body.classList.remove('is-fullscreen-dashboard');
       }
     });
   }
