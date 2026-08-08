@@ -20,6 +20,7 @@ export class DashboardComponent {
   private maxLeanRightEl!: HTMLElement;
   private gForceBar!: HTMLElement;
   private gForceValueEl!: HTMLElement;
+  private gForceMaxEl!: HTMLElement;
   private batteryBarEl!: HTMLElement;
   private batteryPctEl!: HTMLElement;
   private batteryIconEl!: HTMLElement;
@@ -176,6 +177,11 @@ export class DashboardComponent {
     }
 
     this.gForceValueEl.textContent = `${data.gForceY >= 0 ? '+' : ''}${data.gForceY.toFixed(2)}G`;
+
+    const maxG = Math.max(data.maxGForceAccel, Math.abs(data.maxGForceBrake));
+    if (this.gForceMaxEl) {
+      this.gForceMaxEl.textContent = maxG.toFixed(2);
+    }
   }
 
   updateBattery(level: number, charging: boolean): void {
@@ -292,6 +298,7 @@ export class DashboardComponent {
               </div>
               <div class="dash-gforce-label">${t('dash.brake')}</div>
               <div class="dash-gforce-value" id="dash-gforce-value">+0.00G</div>
+              <div class="dash-max-badge" style="margin-top: 4px;">MAX <strong id="dash-gforce-max-val">0.00</strong>G</div>
             </div>
 
             <!-- Sport Lean -->
@@ -358,6 +365,7 @@ export class DashboardComponent {
     this.maxLeanRightEl = this.container.querySelector('#dash-max-lean-r')!;
     this.gForceBar = this.container.querySelector('#dash-gforce-fill')!;
     this.gForceValueEl = this.container.querySelector('#dash-gforce-value')!;
+    this.gForceMaxEl = this.container.querySelector('#dash-gforce-max-val')!;
     this.batteryBarEl = this.container.querySelector('#dash-battery-fill')!;
     this.batteryPctEl = this.container.querySelector('#dash-battery-pct')!;
     this.batteryIconEl = this.container.querySelector('#dash-battery-icon')!;
