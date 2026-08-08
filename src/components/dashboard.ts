@@ -31,6 +31,7 @@ export class DashboardComponent {
   private touringDistanceEl!: HTMLElement;
   private touringDistUnitEl!: HTMLElement;
   private touringTimeEl!: HTMLElement;
+  private bottomTimeEl!: HTMLElement;
   private touringCompassArrow!: HTMLElement;
   private touringCompassText!: HTMLElement;
 
@@ -100,7 +101,9 @@ export class DashboardComponent {
         return `${mins}m`;
       };
       // elapsedTime is in seconds
-      this.touringTimeEl.textContent = formatTime(data.elapsedTime || 0);
+      const timeStr = formatTime(data.elapsedTime || 0);
+      this.touringTimeEl.textContent = timeStr;
+      if (this.bottomTimeEl) this.bottomTimeEl.textContent = timeStr;
     }
 
     if (this.maxSpeedValueEl && data.maxSpeed !== undefined) {
@@ -292,16 +295,6 @@ export class DashboardComponent {
               <div class="dash-max-speed" style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: -5px; font-weight: 600; letter-spacing: 1px;">
                 MAX: <span id="dash-max-speed-value">0</span>
               </div>
-              <div class="dash-info-row">
-                <div class="dash-info-item">
-                  <span class="dash-info-label">${t('dash.trip')}</span>
-                  <span class="dash-info-value" id="dash-distance">0 m</span>
-                </div>
-                <div class="dash-info-item">
-                  <span class="dash-info-label">${t('dash.alt')}</span>
-                  <span class="dash-info-value" id="dash-altitude">--</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -345,6 +338,22 @@ export class DashboardComponent {
             </div>
           </div>
         </div>
+
+        <!-- Bottom Bar: Trip Info -->
+        <div class="dash-bottom-bar">
+          <div class="dash-info-item">
+            <span class="dash-info-label">${t('trip.distance')}</span>
+            <span class="dash-info-value" id="dash-distance">0 m</span>
+          </div>
+          <div class="dash-info-item">
+            <span class="dash-info-label">${t('trip.time')}</span>
+            <span class="dash-info-value" id="dash-bottom-time">00:00</span>
+          </div>
+          <div class="dash-info-item">
+            <span class="dash-info-label">${t('dash.alt')}</span>
+            <span class="dash-info-value" id="dash-altitude">--</span>
+          </div>
+        </div>
       </div>
     `;
 
@@ -368,6 +377,7 @@ export class DashboardComponent {
     this.touringDistanceEl = this.container.querySelector('#dash-touring-distance')!;
     this.touringDistUnitEl = this.container.querySelector('#dash-touring-dist-unit')!;
     this.touringTimeEl = this.container.querySelector('#dash-touring-time')!;
+    this.bottomTimeEl = this.container.querySelector('#dash-bottom-time')!;
     this.touringCompassArrow = this.container.querySelector('.touring-compass-arrow') as HTMLElement;
     this.touringCompassText = this.container.querySelector('#dash-touring-compass-text') as HTMLElement;
 

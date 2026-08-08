@@ -1523,14 +1523,19 @@ body {
   font-weight: 600;
 }
 
-.dash-info-row {
+/* — Bottom Bar (Distance, Time, Alt) — */
+.dash-bottom-bar {
   display: flex;
-  gap: var(--space-lg);
-  margin-top: auto;
-  padding-top: var(--space-sm);
+  justify-content: space-around;
+  align-items: center;
+  padding: var(--space-sm) 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  width: 100%;
-  justify-content: center;
+  margin-top: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.dash-info-row {
+  display: none; /* Removed from center, now in bottom bar */
 }
 
 .dash-info-item {
