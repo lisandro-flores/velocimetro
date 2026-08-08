@@ -100,12 +100,13 @@ export class App {
       this.telemetry.calibrate();
     };
 
-    // Inyectar método start del tacómetro al dashboard para pedir permisos tras click
-    (this.dashboard as any).onStartRequested = async () => {
+    // Inyectar método start del tacómetro y sensores al dashboard tras click
+    this.dashboard.onStartRequested = async () => {
       try {
+        await this.telemetry.requestSensorsPermission();
         await this.tachometer.start();
       } catch (err) {
-        console.warn('Microphone permission denied or error', err);
+        console.warn('Sensors or microphone permission denied or error', err);
       }
     };
 

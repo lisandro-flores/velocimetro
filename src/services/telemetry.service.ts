@@ -58,6 +58,23 @@ export class TelemetryService {
     this.notifyListeners();
   }
 
+  async requestSensorsPermission(): Promise<void> {
+    if (typeof (DeviceOrientationEvent as any)?.requestPermission === 'function') {
+      try {
+        await (DeviceOrientationEvent as any).requestPermission();
+      } catch (e) {
+        console.warn('Orientation permission denied', e);
+      }
+    }
+    if (typeof (DeviceMotionEvent as any)?.requestPermission === 'function') {
+      try {
+        await (DeviceMotionEvent as any).requestPermission();
+      } catch (e) {
+        console.warn('Motion permission denied', e);
+      }
+    }
+  }
+
   start(): void {
     if (this._isActive) return;
     this._isActive = true;

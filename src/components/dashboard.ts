@@ -46,6 +46,7 @@ export class DashboardComponent {
   private clockInterval: number | null = null;
   public onCalibrate: (() => void) | null = null;
   public onExit: (() => void) | null = null;
+  public onStartRequested: (() => Promise<void>) | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -404,15 +405,18 @@ export class DashboardComponent {
     
     startBtn?.addEventListener('click', async () => {
       try {
-        await document.documentElement.requestFullscreen();
+        if (this.onStartRequested) {
+          await this.onStartRequested();
+        }
+        await document.documentElement.requestFullscreen().catch(e => console.warn('Fullscreen ignored', e));
         if ('orientation' in screen && 'lock' in screen.orientation) {
           // @ts-ignore
           await screen.orientation.lock('landscape').catch(e => console.warn('Orientation lock failed', e));
         }
         overlay.style.display = 'none';
       } catch (e) {
-        console.error('Fullscreen failed', e);
-        overlay.style.display = 'none'; // Hide anyway to let them use it
+        console.error('Start failed', e);
+        overlay.style.display = 'none';
       }
     });
 
