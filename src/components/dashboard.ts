@@ -203,10 +203,17 @@ export class DashboardComponent {
         
         <!-- Start Overlay -->
         <div class="dash-start-overlay" id="dash-start-overlay">
-          <button class="btn btn-primary btn-lg" id="dash-start-btn">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-            ${t('dash.start')}
-          </button>
+          <div class="dash-start-card">
+            <div class="dash-start-preview">
+              <span class="dash-start-preview-label">${t('dash.trip')}</span>
+              <div class="dash-start-preview-value" id="dash-start-preview-value">0</div>
+              <div class="dash-start-preview-unit">KM/H</div>
+            </div>
+            <button class="btn btn-primary btn-lg" id="dash-start-btn">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+              ${t('dash.start')}
+            </button>
+          </div>
         </div>
 
         <!-- Calibration Warning -->
@@ -279,19 +286,21 @@ export class DashboardComponent {
               </div>
             </div>
 
-            <div class="dash-speed-value" id="dash-speed">0</div>
-            <div class="dash-speed-unit" id="dash-speed-unit">km/h</div>
-            <div class="dash-max-speed" style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: -5px; font-weight: 600; letter-spacing: 1px;">
-              MAX: <span id="dash-max-speed-value">0</span>
-            </div>
-            <div class="dash-info-row">
-              <div class="dash-info-item">
-                <span class="dash-info-label">${t('dash.trip')}</span>
-                <span class="dash-info-value" id="dash-distance">0 m</span>
+            <div class="dash-speed-stack">
+              <div class="dash-speed-value" id="dash-speed">0</div>
+              <div class="dash-speed-unit" id="dash-speed-unit">km/h</div>
+              <div class="dash-max-speed" style="font-size: 0.8rem; color: var(--accent-cyan); margin-top: -5px; font-weight: 600; letter-spacing: 1px;">
+                MAX: <span id="dash-max-speed-value">0</span>
               </div>
-              <div class="dash-info-item">
-                <span class="dash-info-label">${t('dash.alt')}</span>
-                <span class="dash-info-value" id="dash-altitude">--</span>
+              <div class="dash-info-row">
+                <div class="dash-info-item">
+                  <span class="dash-info-label">${t('dash.trip')}</span>
+                  <span class="dash-info-value" id="dash-distance">0 m</span>
+                </div>
+                <div class="dash-info-item">
+                  <span class="dash-info-label">${t('dash.alt')}</span>
+                  <span class="dash-info-value" id="dash-altitude">--</span>
+                </div>
               </div>
             </div>
           </div>

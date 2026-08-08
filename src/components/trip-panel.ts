@@ -39,29 +39,36 @@ export class TripPanelComponent {
 
   /** Actualizar datos del panel */
   update(data: TripData): void {
-    this.distanceEl.textContent = formatDistance(data.distance, this.unit);
-    this.timeEl.textContent = formatTime(data.elapsedTime);
-    this.avgSpeedEl.textContent = `${formatSpeed(data.avgSpeed, this.unit)} ${getSpeedUnitLabel(this.unit)}`;
-    this.maxSpeedEl.textContent = `${formatSpeed(data.maxSpeed, this.unit)} ${getSpeedUnitLabel(this.unit)}`;
-    this.altitudeEl.textContent = formatAltitude(data.altitude);
+    const safeData = {
+      ...data,
+      distance: Number.isFinite(data.distance) ? data.distance : 0,
+      elapsedTime: Number.isFinite(data.elapsedTime) ? data.elapsedTime : 0,
+      avgSpeed: Number.isFinite(data.avgSpeed) ? data.avgSpeed : 0,
+      maxSpeed: Number.isFinite(data.maxSpeed) ? data.maxSpeed : 0,
+      altitude: typeof data.altitude === 'number' && Number.isFinite(data.altitude) ? data.altitude : null,
+    };
 
-    // Actualizar estado visual
+    this.distanceEl.textContent = formatDistance(safeData.distance, this.unit);
+    this.timeEl.textContent = formatTime(safeData.elapsedTime);
+    this.avgSpeedEl.textContent = `${formatSpeed(safeData.avgSpeed, this.unit)} ${getSpeedUnitLabel(this.unit)}`;
+    this.maxSpeedEl.textContent = `${formatSpeed(safeData.maxSpeed, this.unit)} ${getSpeedUnitLabel(this.unit)}`;
+    this.altitudeEl.textContent = formatAltitude(safeData.altitude);
+
     const stateLabels = { 
       idle: t('trip.status.idle'), 
       running: t('trip.status.running'), 
       paused: t('trip.status.paused') 
     };
     const stateClasses = { idle: 'status-idle', running: 'status-running', paused: 'status-paused' };
-    this.statusEl.textContent = stateLabels[data.state];
-    this.statusEl.className = `trip-status ${stateClasses[data.state]}`;
+    this.statusEl.textContent = stateLabels[safeData.state] || t('trip.status.idle');
+    this.statusEl.className = `trip-status ${stateClasses[safeData.state] || 'status-idle'}`;
 
-    // Mostrar/ocultar botones según estado
-    this.startBtn.style.display = data.state !== 'running' ? '' : 'none';
-    this.pauseBtn.style.display = data.state === 'running' ? '' : 'none';
-    this.resetBtn.style.display = data.state !== 'idle' ? '' : 'none';
-    this.saveBtn.style.display = data.state === 'paused' ? '' : 'none';
+    this.startBtn.style.display = safeData.state !== 'running' ? '' : 'none';
+    this.pauseBtn.style.display = safeData.state === 'running' ? '' : 'none';
+    this.resetBtn.style.display = safeData.state !== 'idle' ? '' : 'none';
+    this.saveBtn.style.display = safeData.state === 'paused' ? '' : 'none';
 
-    this.startBtn.innerHTML = data.state === 'paused'
+    this.startBtn.innerHTML = safeData.state === 'paused'
       ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> ${t('trip.resume')}`
       : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> ${t('trip.start')}`;
   }
@@ -137,7 +144,11 @@ export class TripPanelComponent {
     // Events
     this.startBtn.addEventListener('click', () => this.onStart?.());
     this.pauseBtn.addEventListener('click', () => this.onPause?.());
-    this.resetBtn.addEventListener('click', () => this.onReset?.());
+    this.resetBtn.addEventListener('click', () => {
+      if (window.confirm(t('trip.resetConfirm'))) {
+        this.onReset?.();
+      }
+    });
     this.saveBtn.addEventListener('click', () => this.onSave?.());
   }
 }

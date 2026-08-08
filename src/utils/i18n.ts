@@ -29,6 +29,7 @@ const es: Dictionary = {
   'trip.pause': 'Pausar',
   'trip.reset': 'Reset',
   'trip.save': 'Guardar',
+  'trip.resetConfirm': '¿Seguro que querés reiniciar el viaje actual?',
 
   // History
   'history.title': 'Historial de Viajes',
@@ -37,6 +38,7 @@ const es: Dictionary = {
   'history.empty': 'No hay viajes registrados',
   'history.emptyHint': 'Iniciá un viaje desde el panel de viaje',
   'history.deleteConfirm': '¿Eliminar todos los viajes?',
+  'history.deleteConfirmItem': '¿Eliminar este viaje del historial?',
 
   // Dashboard
   'dash.accel': 'ACCEL',
@@ -114,6 +116,7 @@ const en: Dictionary = {
   'trip.pause': 'Pause',
   'trip.reset': 'Reset',
   'trip.save': 'Save',
+  'trip.resetConfirm': 'Are you sure you want to reset the current trip?',
 
   // History
   'history.title': 'Trip History',
@@ -122,6 +125,7 @@ const en: Dictionary = {
   'history.empty': 'No trips recorded',
   'history.emptyHint': 'Start a trip from the trip panel',
   'history.deleteConfirm': 'Delete all trips?',
+  'history.deleteConfirmItem': 'Delete this trip from history?',
 
   // Dashboard
   'dash.accel': 'ACCEL',

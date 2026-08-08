@@ -272,13 +272,17 @@ export class SettingsComponent {
       this.emitChange();
     });
 
-    fullscreenBtn.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-        fullscreenBtn.textContent = t('settings.fullscreen.off');
-      } else {
-        document.documentElement.requestFullscreen();
-        fullscreenBtn.textContent = t('settings.fullscreen.on');
+    fullscreenBtn.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+          fullscreenBtn.textContent = t('settings.fullscreen.off');
+        } else {
+          await document.documentElement.requestFullscreen();
+          fullscreenBtn.textContent = t('settings.fullscreen.on');
+        }
+      } catch (error) {
+        console.warn('No se pudo alternar pantalla completa:', error);
       }
     });
 

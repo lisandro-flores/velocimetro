@@ -15,6 +15,7 @@ import { DashboardComponent } from './components/dashboard';
 
 import type { TabId, AppSettings } from './utils/constants';
 import { setLanguage } from './utils/i18n';
+import { sanitizeAppSettings } from './utils/validation';
 
 /**
  * Controlador principal de MotoSpeed.
@@ -49,7 +50,7 @@ export class App {
   private alertOverlay: HTMLElement;
 
   constructor() {
-    this.appSettings = this.storage.getSettings();
+    this.appSettings = sanitizeAppSettings(this.storage.getSettings());
     this.contentEl = document.getElementById('app-content')!;
     this.navbarEl = document.getElementById('app-navbar')!;
     this.alertOverlay = document.getElementById('alert-overlay')!;
@@ -57,36 +58,28 @@ export class App {
 
   /** Iniciar la app */
   async init(): Promise<void> {
-    // Set initial language
-    setLanguage(this.appSettings.language || 'es');
-    this.applyTheme(this.appSettings.nightMode);
+    try {
+      setLanguage(this.appSettings.language || 'es');
+      this.applyTheme(this.appSettings.nightMode);
 
-    // Escuchar invitación de instalación PWA
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      this.deferredPrompt = e;
-      if (this.settings) {
-        this.settings.setInstallAvailable(true);
-      }
-    });
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        this.deferredPrompt = e;
+        if (this.settings) {
+          this.settings.setInstallAvailable(true);
+        }
+      });
 
-    // Crear containers para cada vista
-    this.createViewContainers();
-
-    // Inicializar componentes
-    this.initComponents();
-
-    // Inicializar servicios
-    this.initServices();
-
-    // Aplicar settings
-    this.applySettings(this.appSettings);
-
-    // Mostrar tab inicial
-    this.switchTab('dashboard');
-
-    // Update loop para trip panel
-    this.startUpdateLoop();
+      this.createViewContainers();
+      this.initComponents();
+      this.initServices();
+      this.applySettings(this.appSettings);
+      this.switchTab('dashboard');
+      this.startUpdateLoop();
+    } catch (error) {
+      console.error('No se pudo inicializar la app:', error);
+      this.showGlobalStatus('No se pudo iniciar la app. Revisa los permisos del navegador.', 'error');
+    }
   }
 
   private createViewContainers(): void {
@@ -189,44 +182,63 @@ export class App {
   }
 
   private initServices(): void {
-    // GPS callbacks
     this.gps.onUpdate((data) => {
-      this.trip.processGpsData(data);
-      this.alert.checkSpeed(data.speed);
-      this.dashboard.updateTrip(this.trip.data);
+      try {
+        this.trip.processGpsData(data);
+        this.alert.checkSpeed(data.speed);
+        this.dashboard.updateTrip(this.trip.data);
+      } catch (error) {
+        console.error('Error al procesar datos GPS:', error);
+      }
     });
 
     this.telemetry.onUpdate((data) => {
-      this.dashboard.updateTelemetry(data);
+      try {
+        this.dashboard.updateTelemetry(data);
+      } catch (error) {
+        console.error('Error al actualizar telemetría:', error);
+      }
     });
 
     this.tachometer.onUpdate((rpm) => {
-      this.dashboard.updateRpm(rpm);
+      try {
+        this.dashboard.updateRpm(rpm);
+      } catch (error) {
+        console.error('Error al actualizar tacómetro:', error);
+      }
     });
 
     this.battery.onUpdate((level, charging) => {
-      this.dashboard.updateBattery(level, charging);
+      try {
+        this.dashboard.updateBattery(level, charging);
+      } catch (error) {
+        console.error('Error al actualizar batería:', error);
+      }
     });
 
     this.gps.onError((error) => {
       console.error('GPS error:', error.message);
+      this.showGlobalStatus('No se pudo obtener la ubicación GPS. Revisa los permisos.', 'warning');
     });
 
-    // Alert visual
     this.alert.onAlert((isAlerting) => {
       this.alertOverlay.classList.toggle('alert-active', isAlerting);
     });
 
-    // Iniciar GPS y telemetría
-    this.gps.start();
-    this.telemetry.start();
+    try {
+      this.gps.start();
+      this.telemetry.start();
+    } catch (error) {
+      console.error('Error al iniciar servicios base:', error);
+      this.showGlobalStatus('No se pudieron iniciar algunos servicios del sistema.', 'warning');
+    }
   }
 
   private applySettings(s: AppSettings): void {
-    // Check if language changed
-    const langChanged = this.appSettings.language !== s.language;
+    const safeSettings = sanitizeAppSettings(s);
+    const langChanged = this.appSettings.language !== safeSettings.language;
     if (langChanged) {
-      setLanguage(s.language);
+      setLanguage(safeSettings.language);
       this.tripPanel.updateLanguage?.();
       this.history.updateLanguage?.();
       this.dashboard.updateLanguage?.();
@@ -234,26 +246,24 @@ export class App {
       this.navbar.updateLanguage?.();
     }
 
-    // Aplicar Tema
-    this.applyTheme(s.nightMode);
+    this.applyTheme(safeSettings.nightMode);
 
-    // Unidad & Layout
-    this.tripPanel.setUnit(s.unit);
-    this.history.setUnit(s.unit);
-    this.dashboard.setUnit(s.unit);
-    this.dashboard.setLayout?.(s.dashboardLayout);
+    this.tripPanel.setUnit(safeSettings.unit);
+    this.history.setUnit(safeSettings.unit);
+    this.dashboard.setUnit(safeSettings.unit);
+    this.dashboard.setLayout?.(safeSettings.dashboardLayout);
 
-    // Alert
-    this.alert.speedLimit = s.speedLimit;
-    this.alert.enabled = s.speedAlertEnabled;
-    this.alert.soundEnabled = s.soundEnabled;
+    this.alert.speedLimit = safeSettings.speedLimit;
+    this.alert.enabled = safeSettings.speedAlertEnabled;
+    this.alert.soundEnabled = safeSettings.soundEnabled;
 
-    // Wake Lock
-    if (s.wakeLockEnabled) {
+    if (safeSettings.wakeLockEnabled) {
       this.wakeLock.acquire();
     } else {
       this.wakeLock.release();
     }
+
+    this.appSettings = safeSettings;
   }
 
   private switchTab(tab: TabId): void {
@@ -279,16 +289,19 @@ export class App {
 
   private startUpdateLoop(): void {
     this.updateInterval = setInterval(() => {
-      // Actualizar trip panel continuamente
-      this.tripPanel.update(this.trip.data);
-      this.dashboard.updateTrip(this.trip.data);
+      try {
+        this.tripPanel.update(this.trip.data);
+        this.dashboard.updateTrip(this.trip.data);
+      } catch (error) {
+        console.error('Error al refrescar el panel de viaje:', error);
+      }
     }, 1000);
   }
 
   private saveSettings(s: AppSettings): void {
-    this.applySettings(s);
-    this.appSettings = { ...s };
-    this.storage.saveSettings(this.appSettings);
+    const safeSettings = sanitizeAppSettings(s);
+    this.applySettings(safeSettings);
+    this.storage.saveSettings(safeSettings);
   }
 
   private applyTheme(nightMode: 'auto' | 'on' | 'off'): void {
@@ -308,6 +321,34 @@ export class App {
     } else {
       body.classList.remove('theme-light');
     }
+  }
+
+  private showGlobalStatus(message: string, type: 'warning' | 'error' = 'warning'): void {
+    const existing = document.getElementById('global-status');
+    if (existing) {
+      existing.remove();
+    }
+
+    const status = document.createElement('div');
+    status.id = 'global-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    status.textContent = message;
+    status.style.cssText = `
+      position: fixed;
+      left: 16px;
+      right: 16px;
+      bottom: calc(var(--navbar-height, 64px) + 16px);
+      z-index: 200;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: ${type === 'error' ? 'rgba(255, 61, 0, 0.95)' : 'rgba(255, 171, 0, 0.95)'};
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.24);
+    `;
+    document.body.appendChild(status);
+    setTimeout(() => status.remove(), 4000);
   }
 
   destroy(): void {

@@ -3,6 +3,7 @@ import { STORAGE_KEY_SETTINGS } from '../utils/constants';
 import type { TripSummary } from './trip.service';
 import type { AppSettings } from '../utils/constants';
 import { DEFAULT_SETTINGS } from '../utils/constants';
+import { safeParseJson, sanitizeAppSettings } from '../utils/validation';
 
 class MotoSpeedDB extends Dexie {
   trips!: Table<TripSummary, string>;
@@ -23,47 +24,63 @@ const db = new MotoSpeedDB();
 export class StorageService {
   /** Guardar viaje */
   async saveTrip(trip: TripSummary): Promise<void> {
-    await db.trips.put(trip);
-    // Limitar a 100 viajes
-    const count = await db.trips.count();
-    if (count > 100) {
-      const oldest = await db.trips.orderBy('startTime').first();
-      if (oldest) {
-        await db.trips.delete(oldest.id);
+    try {
+      await db.trips.put(trip);
+      const count = await db.trips.count();
+      if (count > 100) {
+        const oldest = await db.trips.orderBy('startTime').first();
+        if (oldest) {
+          await db.trips.delete(oldest.id);
+        }
       }
+    } catch (error) {
+      console.error('No se pudo guardar el viaje:', error);
+      throw error;
     }
   }
 
   /** Obtener todos los viajes */
   async getTrips(): Promise<TripSummary[]> {
-    return await db.trips.orderBy('startTime').reverse().toArray();
+    try {
+      return await db.trips.orderBy('startTime').reverse().toArray();
+    } catch (error) {
+      console.error('No se pudieron cargar los viajes:', error);
+      return [];
+    }
   }
 
   /** Eliminar un viaje por ID */
   async deleteTrip(id: string): Promise<void> {
-    await db.trips.delete(id);
+    try {
+      await db.trips.delete(id);
+    } catch (error) {
+      console.error('No se pudo eliminar el viaje:', error);
+      throw error;
+    }
   }
 
   /** Eliminar todos los viajes */
   async clearTrips(): Promise<void> {
-    await db.trips.clear();
+    try {
+      await db.trips.clear();
+    } catch (error) {
+      console.error('No se pudo limpiar el historial:', error);
+      throw error;
+    }
   }
 
   /** Guardar configuración */
   saveSettings(settings: AppSettings): void {
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+    try {
+      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(sanitizeAppSettings(settings)));
+    } catch (error) {
+      console.error('No se pudieron guardar los ajustes:', error);
+    }
   }
 
   /** Obtener configuración */
   getSettings(): AppSettings {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
-      if (raw) {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-      }
-    } catch {
-      // Ignore parse errors
-    }
-    return { ...DEFAULT_SETTINGS };
+    const raw = safeParseJson<AppSettings | null>(localStorage.getItem(STORAGE_KEY_SETTINGS), null);
+    return sanitizeAppSettings(raw ?? { ...DEFAULT_SETTINGS });
   }
 }

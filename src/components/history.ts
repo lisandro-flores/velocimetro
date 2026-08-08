@@ -72,8 +72,11 @@ export class HistoryComponent {
 
     this.container.querySelectorAll('.history-delete-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        const id = (e.currentTarget as HTMLElement).dataset.id!;
-        this.onDelete?.(id);
+        const id = (e.currentTarget as HTMLElement).dataset.id;
+        if (!id) return;
+        if (window.confirm(t('history.deleteConfirmItem'))) {
+          this.onDelete?.(id);
+        }
       });
     });
   }
