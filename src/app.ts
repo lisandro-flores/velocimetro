@@ -5,7 +5,6 @@ import { WakeLockService } from './services/wakelock.service';
 import { AlertService } from './services/alert.service';
 import { TelemetryService } from './services/telemetry.service';
 import { BatteryService } from './services/battery.service';
-import { TachometerService } from './services/tachometer.service';
 import { OBD2Service } from './services/obd2.service';
 
 import { TripPanelComponent } from './components/trip-panel';
@@ -31,7 +30,6 @@ export class App {
   private alert = new AlertService();
   private telemetry = new TelemetryService();
   private battery = new BatteryService();
-  private tachometer = new TachometerService();
   private obd2 = new OBD2Service();
 
   // Componentes
@@ -106,9 +104,8 @@ export class App {
     this.dashboard.onStartRequested = async () => {
       try {
         await this.telemetry.requestSensorsPermission();
-        await this.tachometer.start();
       } catch (err) {
-        console.warn('Sensors or microphone permission denied or error', err);
+        console.warn('Sensors permission denied or error', err);
       }
     };
 
@@ -217,17 +214,6 @@ export class App {
         this.dashboard.updateTelemetry(data);
       } catch (error) {
         console.error('Error al actualizar telemetría:', error);
-      }
-    });
-
-    this.tachometer.onUpdate((rpm) => {
-      try {
-        // Si no hay OBD2, usamos audio FFT para la UI
-        if (!this.obd2.isConnected) {
-          this.dashboard.updateRpm(rpm);
-        }
-      } catch (error) {
-        console.error('Error al actualizar tacómetro:', error);
       }
     });
 
