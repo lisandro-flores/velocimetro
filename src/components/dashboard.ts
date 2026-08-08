@@ -61,8 +61,9 @@ export class DashboardComponent {
 
     // Update compass if touring
     if (this.layout === 'touring' && this.touringCompassArrow) {
-      const h = data.heading || 0;
-      this.touringCompassArrow.style.transform = `rotate(${h}deg)`;
+      const h = (typeof data.heading === 'number' && !isNaN(data.heading)) ? data.heading : 0;
+      // The arrow points North. If heading is East (90), North is left (-90).
+      this.touringCompassArrow.style.transform = `rotate(${-h}deg)`;
       this.touringCompassText.textContent = this.getHeadingString(h);
     }
   }
@@ -86,14 +87,15 @@ export class DashboardComponent {
       this.touringDistanceEl.textContent = dist;
       this.touringDistUnitEl.textContent = this.unit === 'kmh' ? 'km' : 'mi';
       
-      const formatTime = (ms: number) => {
-        const totalSecs = Math.floor(ms / 1000);
-        const hours = Math.floor(totalSecs / 3600);
-        const mins = Math.floor((totalSecs % 3600) / 60);
+      const formatTime = (seconds: number) => {
+        if (!seconds || isNaN(seconds)) return '0m';
+        const hours = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
         if (hours > 0) return `${hours}h ${mins}m`;
         return `${mins}m`;
       };
-      this.touringTimeEl.textContent = formatTime(data.duration);
+      // elapsedTime is in seconds
+      this.touringTimeEl.textContent = formatTime(data.elapsedTime || 0);
     }
   }
 
