@@ -199,7 +199,11 @@ export class DashboardComponent {
 
   private startRenderLoop(): void {
     const loop = () => {
-      this.renderCanvas();
+      try {
+        this.renderCanvas();
+      } catch (err) {
+        console.error('Error in render loop:', err);
+      }
       this.renderFrame = requestAnimationFrame(loop);
     };
     loop();
@@ -398,7 +402,11 @@ export class DashboardComponent {
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(x, y, 90, 50, 8);
+    if (ctx.roundRect) {
+      ctx.roundRect(x, y, 90, 50, 8);
+    } else {
+      ctx.rect(x, y, 90, 50);
+    }
     ctx.fill();
     ctx.stroke();
 
@@ -416,7 +424,11 @@ export class DashboardComponent {
     const tY = y + 60;
     ctx.fillStyle = 'rgba(255,255,255,0.03)';
     ctx.beginPath();
-    ctx.roundRect(x, tY, 90, 50, 8);
+    if (ctx.roundRect) {
+      ctx.roundRect(x, tY, 90, 50, 8);
+    } else {
+      ctx.rect(x, tY, 90, 50);
+    }
     ctx.fill();
     ctx.stroke();
 
