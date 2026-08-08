@@ -1452,46 +1452,33 @@ body {
   letter-spacing: 1px;
 }
 
-/* — Speed Column (Center) — */
+/* — Speed & Tachometer Column (Center) — */
 .dash-speed-col {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-xs);
+  justify-content: center;
   position: relative;
-  padding-top: var(--space-sm);
+  min-height: 0;
+  height: 100%;
 }
 
-.dash-speed-stack {
+.dash-gauge-hub {
+  position: relative;
+  width: min(100%, 340px);
+  max-width: 340px;
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100%;
-}
-
-/* — RPM Gauge (Arc) — */
-.dash-rpm-container {
-  width: 240px;
-  height: 120px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -100%);
-  display: flex;
-  justify-content: center;
-  pointer-events: none;
+  padding: var(--space-xs) 0;
 }
 
 .dash-rpm-svg {
   width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
+  max-height: 140px;
+  display: block;
 }
 
 .dash-rpm-fill {
@@ -1499,46 +1486,78 @@ body {
   will-change: stroke-dashoffset;
 }
 
-.dash-rpm-text-group {
-  position: absolute;
-  bottom: -5px;
+.dash-gauge-header {
+  margin-top: -110px;
+  margin-bottom: var(--space-xs);
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: baseline;
+  gap: 4px;
+  z-index: 2;
 }
 
-#dash-rpm-text {
+.dash-rpm-num {
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--accent-green);
   line-height: 1;
+  transition: color 0.3s ease;
 }
 
-.dash-rpm-label {
-  font-size: 0.6rem;
+.dash-rpm-lbl {
+  font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 2px;
+  font-weight: 600;
+}
+
+.dash-gauge-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
 
 .dash-speed-value {
   font-family: var(--font-display);
-  font-size: clamp(4rem, 15vw, 8rem);
-  font-weight: 700;
-  line-height: 1;
+  font-size: clamp(3.8rem, 14vw, 6.8rem);
+  font-weight: 800;
+  line-height: 0.95;
   color: var(--text-primary);
   text-shadow:
     0 0 30px rgba(0, 229, 255, 0.35),
     0 0 60px rgba(0, 229, 255, 0.15);
 }
 
+.dash-speed-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: 4px;
+}
+
 .dash-speed-unit {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: var(--accent-cyan);
   text-transform: uppercase;
   letter-spacing: 3px;
+  font-weight: 700;
+}
+
+.dash-max-badge {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 1px;
   font-weight: 600;
+}
+
+.dash-max-badge strong {
+  color: var(--accent-orange);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
 }
 
 /* — Bottom Bar (Distance, Time, Alt) — */

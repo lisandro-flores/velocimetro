@@ -187,6 +187,7 @@ export class App {
       try {
         this.trip.processGpsData(data);
         this.alert.checkSpeed(data.speed);
+        this.dashboard.updateGps(data);
         this.dashboard.updateTrip(this.trip.data);
       } catch (error) {
         console.error('Error al procesar datos GPS:', error);
