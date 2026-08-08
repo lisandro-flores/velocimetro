@@ -1,5 +1,6 @@
 import { NAV_TABS } from '../utils/constants';
 import type { TabId } from '../utils/constants';
+import { t } from '../utils/i18n';
 
 /**
  * Barra de navegación inferior con tabs.
@@ -20,6 +21,12 @@ export class NavbarComponent {
     this.activeTab = tab;
     this.updateActive();
   }
+  
+  /** Re-renderizar si cambia el idioma */
+  updateLanguage(): void {
+    this.render();
+    this.updateActive();
+  }
 
   destroy(): void {
     // Cleanup handled by parent
@@ -30,7 +37,7 @@ export class NavbarComponent {
       <button class="nav-tab ${tab.id === this.activeTab ? 'nav-tab-active' : ''}"
         data-tab="${tab.id}" id="nav-tab-${tab.id}">
         <span class="nav-tab-icon">${tab.icon}</span>
-        <span class="nav-tab-label">${tab.label}</span>
+        <span class="nav-tab-label">${t(tab.labelKey)}</span>
       </button>
     `).join('');
 

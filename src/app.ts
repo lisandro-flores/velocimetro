@@ -16,6 +16,7 @@ import { NavbarComponent } from './components/navbar';
 import { DashboardComponent } from './components/dashboard';
 
 import type { TabId, AppSettings } from './utils/constants';
+import { setLanguage } from './utils/i18n';
 
 /**
  * Controlador principal de MotoSpeed.
@@ -60,6 +61,9 @@ export class App {
 
   /** Iniciar la app */
   async init(): Promise<void> {
+    // Set initial language
+    setLanguage(this.appSettings.language || 'es');
+
     // Crear containers para cada vista
     this.createViewContainers();
 
@@ -156,6 +160,15 @@ export class App {
     // Navbar
     this.navbar = new NavbarComponent(this.navbarEl);
     this.navbar.onTabChange = (tab) => this.switchTab(tab);
+
+    // Fullscreen behavior for dashboard
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement) {
+        this.navbarEl.style.display = 'none';
+      } else {
+        this.navbarEl.style.display = '';
+      }
+    });
   }
 
   private initServices(): void {
@@ -165,6 +178,7 @@ export class App {
       this.speedometer.setHeading(data.heading);
       this.trip.processGpsData(data);
       this.alert.checkSpeed(data.speed);
+      this.dashboard.updateGps(data);
 
       // Actualizar brújula con heading GPS si no hay sensor
       if (data.heading !== null) {
@@ -204,6 +218,18 @@ export class App {
   }
 
   private applySettings(s: AppSettings): void {
+    // Check if language changed
+    const langChanged = this.appSettings.language !== s.language;
+    if (langChanged) {
+      setLanguage(s.language);
+      this.speedometer.updateLanguage?.();
+      this.tripPanel.updateLanguage?.();
+      this.history.updateLanguage?.();
+      this.dashboard.updateLanguage?.();
+      this.settings.updateLanguage?.();
+      this.navbar.updateLanguage?.();
+    }
+
     // Unidad
     this.speedometer.setUnit(s.unit);
     this.tripPanel.setUnit(s.unit);
@@ -248,6 +274,7 @@ export class App {
     this.updateInterval = setInterval(() => {
       // Actualizar trip panel continuamente
       this.tripPanel.update(this.trip.data);
+      this.dashboard.updateTrip(this.trip.data);
     }, 1000);
   }
 

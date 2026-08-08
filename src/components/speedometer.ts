@@ -1,5 +1,6 @@
 import { formatSpeed, getSpeedUnitLabel, formatClock, headingToCardinal } from '../utils/format';
 import { MAX_GAUGE_SPEED } from '../utils/constants';
+import { t } from '../utils/i18n';
 
 /**
  * Componente de velocímetro con gauge SVG animado.
@@ -30,6 +31,11 @@ export class SpeedometerComponent {
     this.render();
     this.startAnimation();
     this.startClock();
+  }
+
+  /** Re-renderizar si cambia el idioma */
+  updateLanguage(): void {
+    this.render();
   }
 
   /** Actualizar velocidad actual */
@@ -161,7 +167,7 @@ export class SpeedometerComponent {
 
         <div class="speedo-stats">
           <div class="speedo-stat">
-            <span class="speedo-stat-label">VEL. MÁX</span>
+            <span class="speedo-stat-label">${t('speed.max')}</span>
             <span class="speedo-stat-value" id="speedo-max">0</span>
           </div>
         </div>
