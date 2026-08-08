@@ -222,10 +222,11 @@ export class App {
     // Aplicar Tema
     this.applyTheme(s.nightMode);
 
-    // Unidad
+    // Unidad & Layout
     this.tripPanel.setUnit(s.unit);
     this.history.setUnit(s.unit);
     this.dashboard.setUnit(s.unit);
+    this.dashboard.setLayout?.(s.dashboardLayout);
 
     // Alert
     this.alert.speedLimit = s.speedLimit;

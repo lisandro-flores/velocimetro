@@ -128,6 +128,20 @@ export class SettingsComponent {
 
           <div class="setting-item">
             <div class="setting-info">
+              <span class="setting-label">${t('settings.layout.title')}</span>
+              <span class="setting-desc">${t('settings.layout.desc')}</span>
+            </div>
+            <div class="setting-control">
+              <select id="setting-layout" class="setting-select">
+                <option value="sport" ${this.settings.dashboardLayout === 'sport' ? 'selected' : ''}>${t('settings.layout.sport')}</option>
+                <option value="minimalist" ${this.settings.dashboardLayout === 'minimalist' ? 'selected' : ''}>${t('settings.layout.minimalist')}</option>
+                <option value="touring" ${this.settings.dashboardLayout === 'touring' ? 'selected' : ''}>${t('settings.layout.touring')}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
               <span class="setting-label">${t('settings.wakelock.title')}</span>
               <span class="setting-desc">${t('settings.wakelock.desc')}</span>
             </div>
@@ -197,6 +211,7 @@ export class SettingsComponent {
     const fullscreenBtn = this.container.querySelector('#setting-fullscreen') as HTMLButtonElement;
     const langEl = this.container.querySelector('#setting-lang') as HTMLSelectElement;
     const themeEl = this.container.querySelector('#setting-theme') as HTMLSelectElement;
+    const layoutEl = this.container.querySelector('#setting-layout') as HTMLSelectElement;
     const installBtn = this.container.querySelector('#setting-install-btn') as HTMLButtonElement;
 
     unitEl.addEventListener('change', () => {
@@ -226,6 +241,11 @@ export class SettingsComponent {
 
     themeEl.addEventListener('change', () => {
       this.settings.nightMode = themeEl.value as 'auto' | 'on' | 'off';
+      this.emitChange();
+    });
+
+    layoutEl.addEventListener('change', () => {
+      this.settings.dashboardLayout = layoutEl.value as 'sport' | 'minimalist' | 'touring';
       this.emitChange();
     });
 

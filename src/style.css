@@ -1292,15 +1292,40 @@ body {
   min-height: 0;
 }
 
+/* — Layout Visibility Logic — */
+.dash-touring-only {
+  display: none;
+}
+
+.layout-touring .dash-sport-only {
+  display: none !important;
+}
+
+.layout-touring .dash-touring-only {
+  display: flex;
+}
+
+.layout-minimalist .dash-left-col,
+.layout-minimalist .dash-right-col {
+  display: none !important;
+}
+
 /* — G-Force Column (Left) — */
-.dash-gforce-col {
+.dash-left-col {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
   width: 60px;
   flex-shrink: 0;
   gap: var(--space-xs);
+}
+
+.dash-gforce-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  height: 100%;
 }
 
 .dash-gforce-label {
@@ -1399,14 +1424,14 @@ body {
   font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   font-weight: 600;
 }
 
 .dash-info-value {
   font-family: var(--font-display);
-  font-size: 1rem;
-  color: var(--text-secondary);
+  font-size: 0.9rem;
+  color: var(--text-primary);
 }
 
 /* — Lean Angle Column (Right) — */
@@ -1467,6 +1492,80 @@ body {
   font-weight: 700;
   color: var(--text-primary);
   transition: color 0.3s ease;
+}
+
+/* — Touring Info (Left Col) — */
+.dash-touring-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-lg);
+  height: 100%;
+  padding-left: var(--space-sm);
+}
+
+.touring-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.touring-label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+}
+
+.touring-value {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.touring-unit {
+  font-size: 0.8rem;
+  color: var(--accent-cyan);
+  margin-left: 2px;
+}
+
+/* — Touring Compass (Right Col) — */
+.dash-touring-compass {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  height: 100%;
+}
+
+.touring-compass-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.touring-compass-arrow {
+  color: var(--accent-cyan);
+  transition: transform 0.5s ease-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touring-compass-text {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
 }
 
 /* — Landscape Responsive — */

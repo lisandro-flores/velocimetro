@@ -1,7 +1,5 @@
-import type { GpsData } from '../services/gps.service';
 import type { TelemetryData } from '../services/telemetry.service';
-import type { TripData } from '../services/trip.service';
-import { formatSpeed, getSpeedUnitLabel, formatDistance, formatAltitude } from '../utils/format';
+import { getSpeedUnitLabel } from '../utils/format';
 import { t } from '../utils/i18n';
 
 /**
@@ -30,6 +28,16 @@ export class DashboardComponent {
   private distanceEl!: HTMLElement;
   private gpsIndicator!: HTMLElement;
 
+  private touringDistanceEl!: HTMLElement;
+  private touringDistUnitEl!: HTMLElement;
+  private touringTimeEl!: HTMLElement;
+  private touringCompassArrow!: HTMLElement;
+  private touringCompassText!: HTMLElement;
+
+  // Layout elements
+  private dashboardView!: HTMLElement;
+  private layout: 'sport' | 'minimalist' | 'touring' = 'sport';
+
   private clockInterval: number | null = null;
   public onCalibrate: (() => void) | null = null;
 
@@ -43,17 +51,50 @@ export class DashboardComponent {
     this.speedUnitEl.textContent = getSpeedUnitLabel(this.unit);
   }
 
-  updateGps(data: GpsData): void {
-    this.speedEl.textContent = formatSpeed(data.speed, this.unit);
-    this.altitudeEl.textContent = formatAltitude(data.altitude);
+  updateGps(data: any): void {
+    this.speedEl.textContent = (data.speed * (this.unit === 'kmh' ? 3.6 : 2.23694)).toFixed(0);
+    this.altitudeEl.textContent = data.altitude ? `${Math.round(data.altitude)}m` : '--';
 
     // GPS signal quality indicator
     const quality = data.accuracy <= 5 ? 'excellent' : data.accuracy <= 15 ? 'good' : 'weak';
     this.gpsIndicator.className = `dash-gps-dot dash-gps-${quality}`;
+
+    // Update compass if touring
+    if (this.layout === 'touring' && this.touringCompassArrow) {
+      const h = data.heading || 0;
+      this.touringCompassArrow.style.transform = `rotate(${h}deg)`;
+      this.touringCompassText.textContent = this.getHeadingString(h);
+    }
   }
 
-  updateTrip(data: TripData): void {
-    this.distanceEl.textContent = formatDistance(data.distance, this.unit);
+  private getHeadingString(heading: number): string {
+    const CARDINAL_DIRECTIONS = [
+      'N', 'NNE', 'NE', 'ENE',
+      'E', 'ESE', 'SE', 'SSE',
+      'S', 'SSO', 'SO', 'OSO',
+      'O', 'ONO', 'NO', 'NNO',
+    ];
+    const val = Math.floor((heading / 22.5) + 0.5);
+    return CARDINAL_DIRECTIONS[(val % 16)];
+  }
+
+  updateTrip(data: any): void {
+    const dist = (data.distance / 1000).toFixed(1);
+    this.distanceEl.textContent = `${dist} ${this.unit === 'kmh' ? 'km' : 'mi'}`;
+
+    if (this.touringDistanceEl) {
+      this.touringDistanceEl.textContent = dist;
+      this.touringDistUnitEl.textContent = this.unit === 'kmh' ? 'km' : 'mi';
+      
+      const formatTime = (ms: number) => {
+        const totalSecs = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSecs / 3600);
+        const mins = Math.floor((totalSecs % 3600) / 60);
+        if (hours > 0) return `${hours}h ${mins}m`;
+        return `${mins}m`;
+      };
+      this.touringTimeEl.textContent = formatTime(data.duration);
+    }
   }
 
   updateTelemetry(data: TelemetryData): void {
@@ -132,14 +173,22 @@ export class DashboardComponent {
 
   /** Re-renderizar si cambia el idioma */
   updateLanguage(): void {
-    // Only re-render if we need to translate fixed strings.
-    // Dashboard mostly updates dynamic data, but some labels like ACCEL, BRAKE, LEAN could be translated.
     this.render();
+  }
+
+  setLayout(layout: 'sport' | 'minimalist' | 'touring'): void {
+    if (this.layout === layout) return;
+    this.layout = layout;
+    
+    if (this.dashboardView) {
+      this.dashboardView.classList.remove('layout-sport', 'layout-minimalist', 'layout-touring');
+      this.dashboardView.classList.add(`layout-${layout}`);
+    }
   }
 
   private render(): void {
     this.container.innerHTML = `
-      <div class="dashboard-view" id="dashboard-view">
+      <div class="dashboard-view layout-${this.layout}" id="dashboard-view">
         
         <!-- Start Overlay -->
         <div class="dash-start-overlay" id="dash-start-overlay">
@@ -173,15 +222,31 @@ export class DashboardComponent {
         <!-- Main Area -->
         <div class="dash-main">
 
-          <!-- Left: G-Force Meter -->
-          <div class="dash-gforce-col">
-            <div class="dash-gforce-label">${t('dash.accel')}</div>
-            <div class="dash-gforce-track">
-              <div class="dash-gforce-zero"></div>
-              <div class="dash-gforce-fill" id="dash-gforce-fill"></div>
+          <!-- Left: G-Force Column (Sport) or Trip Info (Touring) -->
+          <div class="dash-left-col">
+            <!-- Sport G-Force -->
+            <div class="dash-sport-only dash-gforce-col">
+              <div class="dash-gforce-label">${t('dash.accel')}</div>
+              <div class="dash-gforce-track">
+                <div class="dash-gforce-zero"></div>
+                <div class="dash-gforce-fill" id="dash-gforce-fill"></div>
+              </div>
+              <div class="dash-gforce-label">${t('dash.brake')}</div>
+              <div class="dash-gforce-value" id="dash-gforce-value">+0.00G</div>
             </div>
-            <div class="dash-gforce-label">${t('dash.brake')}</div>
-            <div class="dash-gforce-value" id="dash-gforce-value">+0.00G</div>
+            
+            <!-- Touring Info -->
+            <div class="dash-touring-only dash-touring-info">
+              <div class="touring-item">
+                <span class="touring-label">${t('trip.distance')}</span>
+                <span class="touring-value" id="dash-touring-distance">0.0</span>
+                <span class="touring-unit" id="dash-touring-dist-unit">km</span>
+              </div>
+              <div class="touring-item">
+                <span class="touring-label">${t('trip.time')}</span>
+                <span class="touring-value" id="dash-touring-time">00:00</span>
+              </div>
+            </div>
           </div>
 
           <!-- Center: Speed -->
@@ -200,37 +265,44 @@ export class DashboardComponent {
             </div>
           </div>
 
-          <!-- Right: Lean Angle -->
-          <div class="dash-lean-col">
-            <div class="dash-lean-header">
-              <span class="dash-lean-max-l" id="dash-max-lean-l">0°</span>
-              <span class="dash-lean-title">${t('dash.lean')}</span>
-              <span class="dash-lean-max-r" id="dash-max-lean-r">0°</span>
+          <!-- Right: Lean Angle (Sport) or Compass (Touring) -->
+          <div class="dash-right-col">
+            <!-- Sport Lean -->
+            <div class="dash-sport-only dash-lean-col">
+              <div class="dash-lean-header">
+                <span class="dash-lean-max-l" id="dash-max-lean-l">0°</span>
+                <span class="dash-lean-title">${t('dash.lean')}</span>
+                <span class="dash-lean-max-r" id="dash-max-lean-r">0°</span>
+              </div>
+              <div class="dash-lean-gauge">
+                <!-- The arc background with tick marks -->
+                <svg class="dash-lean-svg" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+                  <!-- Outer arc -->
+                  <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
+                  <!-- Tick marks every 15 degrees -->
+                  <line x1="20" y1="110" x2="28" y2="104" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  <line x1="37" y1="80"  x2="46" y2="80"  stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  <line x1="65" y1="55"  x2="71" y2="62"  stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  <line x1="100" y1="30" x2="100" y2="40" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+                  <line x1="135" y1="55" x2="129" y2="62" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  <line x1="163" y1="80" x2="154" y2="80" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  <line x1="180" y1="110" x2="172" y2="104" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  <!-- Needle -->
+                  <line id="dash-lean-needle" x1="100" y1="110" x2="100" y2="40" stroke="var(--accent-cyan)" stroke-width="2.5" stroke-linecap="round" class="dash-lean-needle"/>
+                </svg>
+              </div>
+              <div class="dash-lean-value" id="dash-lean-current">0°</div>
             </div>
-            <div class="dash-lean-gauge">
-              <!-- The arc background with tick marks -->
-              <svg class="dash-lean-svg" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
-                <!-- Outer arc -->
-                <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4"/>
-                <!-- Tick marks every 15 degrees -->
-                <line x1="20" y1="110" x2="28" y2="104" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-                <line x1="37" y1="80"  x2="46" y2="80"  stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-                <line x1="65" y1="55"  x2="71" y2="62"  stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-                <line x1="100" y1="30" x2="100" y2="40" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
-                <line x1="135" y1="55" x2="129" y2="62" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-                <line x1="163" y1="80" x2="154" y2="80" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-                <line x1="180" y1="110" x2="172" y2="104" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
-                <!-- Labels -->
-                <text x="12" y="115" fill="rgba(255,255,255,0.4)" font-size="9" text-anchor="middle">60</text>
-                <text x="100" y="25" fill="rgba(255,255,255,0.5)" font-size="9" text-anchor="middle">0</text>
-                <text x="188" y="115" fill="rgba(255,255,255,0.4)" font-size="9" text-anchor="middle">60</text>
-                <!-- Needle pivot -->
-                <circle cx="100" cy="110" r="5" fill="var(--accent-cyan)"/>
-                <!-- Needle -->
-                <line id="dash-lean-needle" x1="100" y1="110" x2="100" y2="40" stroke="var(--accent-cyan)" stroke-width="2.5" stroke-linecap="round" class="dash-lean-needle"/>
-              </svg>
+
+            <!-- Touring Compass -->
+            <div class="dash-touring-only dash-touring-compass">
+              <div class="touring-compass-circle">
+                <div class="touring-compass-arrow" id="dash-touring-compass-arrow">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l4 10-4-2-4 2 4-10z"/></svg>
+                </div>
+              </div>
+              <div class="touring-compass-text" id="dash-touring-compass-text">N</div>
             </div>
-            <div class="dash-lean-value" id="dash-lean-current">0°</div>
           </div>
         </div>
       </div>
@@ -252,6 +324,12 @@ export class DashboardComponent {
     this.altitudeEl = this.container.querySelector('#dash-altitude')!;
     this.distanceEl = this.container.querySelector('#dash-distance')!;
     this.gpsIndicator = this.container.querySelector('#dash-gps-dot')!;
+
+    this.touringDistanceEl = this.container.querySelector('#dash-touring-distance')!;
+    this.touringDistUnitEl = this.container.querySelector('#dash-touring-dist-unit')!;
+    this.touringTimeEl = this.container.querySelector('#dash-touring-time')!;
+    this.touringCompassArrow = this.container.querySelector('#dash-touring-compass-arrow')!;
+    this.touringCompassText = this.container.querySelector('#dash-touring-compass-text')!;
 
     // Clock updater
     this.updateClock();
@@ -275,6 +353,8 @@ export class DashboardComponent {
       }
     });
 
+    this.dashboardView = this.container.querySelector('#dashboard-view') as HTMLElement;
+    
     // Listen for fullscreen change to show overlay again if they exit
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) {
@@ -295,7 +375,7 @@ export class DashboardComponent {
     this.clockEl.textContent = now.toLocaleTimeString('es-AR', {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false,
+      hour12: false
     });
   }
 }

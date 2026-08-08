@@ -14,6 +14,8 @@ export const DEFAULT_SETTINGS = {
   nightMode: 'auto' as 'auto' | 'on' | 'off',
   /** Idioma de la interfaz */
   language: 'es' as 'es' | 'en',
+  /** Estilo de distribución del Tablero */
+  dashboardLayout: 'sport' as 'sport' | 'minimalist' | 'touring',
 };
 
 export type AppSettings = typeof DEFAULT_SETTINGS;
