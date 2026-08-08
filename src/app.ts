@@ -102,8 +102,11 @@ export class App {
 
     // Dashboard
     this.dashboard = new DashboardComponent(
-      document.getElementById('view-dashboard')!
+      this.contentEl.querySelector('#view-dashboard') as HTMLElement
     );
+    this.dashboard.onCalibrate = () => {
+      this.telemetry.calibrate();
+    };
 
     // Trip Panel
     this.tripPanel = new TripPanelComponent(

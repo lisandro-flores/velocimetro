@@ -30,7 +30,8 @@ export class DashboardComponent {
   private distanceEl!: HTMLElement;
   private gpsIndicator!: HTMLElement;
 
-  private clockInterval: ReturnType<typeof setInterval> | null = null;
+  private clockInterval: number | null = null;
+  public onCalibrate: (() => void) | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -56,6 +57,16 @@ export class DashboardComponent {
   }
 
   updateTelemetry(data: TelemetryData): void {
+    // Show/hide calibration warning
+    const warnEl = this.container.querySelector('#dash-calib-warn') as HTMLElement;
+    if (warnEl) {
+      if (data.needsCalibration) {
+        warnEl.classList.add('active');
+      } else {
+        warnEl.classList.remove('active');
+      }
+    }
+
     // — Lean Angle —
     const absLean = Math.abs(Math.round(data.leanAngle));
     this.leanAngleEl.textContent = `${absLean}°`;
@@ -136,6 +147,12 @@ export class DashboardComponent {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
             ${t('dash.start')}
           </button>
+        </div>
+
+        <!-- Calibration Warning -->
+        <div class="dash-calib-warn" id="dash-calib-warn">
+          <span>${t('dash.alignWarning')}</span>
+          <button class="btn btn-sm btn-warning" id="dash-calib-btn">${t('dash.calibrate')}</button>
         </div>
 
         <!-- Top Bar: Clock, GPS, Battery -->
@@ -264,6 +281,12 @@ export class DashboardComponent {
         // Exited fullscreen, show overlay again
         if (overlay) overlay.style.display = 'flex';
       }
+    });
+
+    // Calibration button
+    const calibBtn = this.container.querySelector('#dash-calib-btn');
+    calibBtn?.addEventListener('click', () => {
+      this.onCalibrate?.();
     });
   }
 

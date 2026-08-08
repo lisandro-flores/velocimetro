@@ -45,6 +45,8 @@ const es: Dictionary = {
   'dash.alt': 'ALT',
   'dash.lean': 'LEAN',
   'dash.start': 'ENTRAR MODO TABLERO',
+  'dash.alignWarning': '⚠️ Alineación Incorrecta',
+  'dash.calibrate': 'Calibrar Centro',
 
   // Settings
   'settings.title': 'Configuración',
@@ -113,6 +115,8 @@ const en: Dictionary = {
   'dash.alt': 'ALT',
   'dash.lean': 'LEAN',
   'dash.start': 'ENTER DASHBOARD MODE',
+  'dash.alignWarning': '⚠️ Poor Alignment',
+  'dash.calibrate': 'Calibrate Center',
 
   // Settings
   'settings.title': 'Settings',

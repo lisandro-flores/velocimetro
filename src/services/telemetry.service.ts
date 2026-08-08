@@ -11,6 +11,8 @@ export interface TelemetryData {
   maxGForceAccel: number;
   /** Fuerza G máxima en frenada (negativo) */
   maxGForceBrake: number;
+  /** Indica si la alineación actual es pobre y necesita calibración */
+  needsCalibration: boolean;
 }
 
 export type TelemetryCallback = (data: TelemetryData) => void;
@@ -31,8 +33,29 @@ export class TelemetryService {
   private maxGForceAccel = 0;
   private maxGForceBrake = 0;
 
+  // Calibration Offsets
+  private rollOffset = 0;
+  // @ts-ignore: Intentionally kept for future 3D G-force correction
+  private pitchOffset = 0;
+  private rawRoll = 0;
+  private rawPitch = 0;
+  private isCalibrated = false;
+  private _needsCalibration = false;
+
   get isActive(): boolean {
     return this._isActive;
+  }
+
+  /**
+   * Toma los ángulos actuales como el "centro 0"
+   */
+  calibrate(): void {
+    // Current raw angles are the offsets
+    this.rollOffset = this.rawRoll;
+    this.pitchOffset = this.rawPitch;
+    this.isCalibrated = true;
+    this._needsCalibration = false;
+    this.notifyListeners();
   }
 
   start(): void {
@@ -71,18 +94,37 @@ export class TelemetryService {
     // When phone is landscape (dashboard mode), beta is left/right tilt.
     // Let's assume portrait for now, or adapt dynamically.
     // In landscape, we might need to check window.orientation.
-    let angle = 0;
+    let roll = 0;
+    let pitch = 0;
     const orientation = screen.orientation?.type || 'portrait-primary';
     
     if (orientation.includes('landscape')) {
-      // In landscape, beta is lean angle
-      angle = event.beta || 0;
+      // In landscape, beta is lean angle (roll), gamma is tilt forward/back (pitch)
+      roll = event.beta || 0;
+      pitch = event.gamma || 0;
       if (orientation === 'landscape-secondary') {
-        angle = -angle; // invert
+        roll = -roll; // invert
       }
     } else {
-      // In portrait, gamma is lean angle
-      angle = event.gamma || 0;
+      // In portrait, gamma is lean angle (roll), beta is tilt forward/back (pitch)
+      roll = event.gamma || 0;
+      pitch = event.beta || 0;
+    }
+
+    // We need to store the raw values so the `calibrate()` function can read them
+    this.rawRoll = roll;
+    this.rawPitch = pitch;
+
+    let angle = roll - this.rollOffset;
+
+    // Check if it needs calibration (if not manually calibrated yet)
+    // If the phone is tilted more than 15 degrees at rest, it's mounted crooked.
+    if (!this.isCalibrated) {
+      if (Math.abs(roll) > 15 || Math.abs(pitch) > 60) {
+        this._needsCalibration = true;
+      } else {
+        this._needsCalibration = false;
+      }
     }
 
     // Suavizado EMA para la inclinación
@@ -147,7 +189,8 @@ export class TelemetryService {
       maxLeanLeft: this.maxLeanLeft,
       gForceY: this.currentGForceY,
       maxGForceAccel: this.maxGForceAccel,
-      maxGForceBrake: this.maxGForceBrake
+      maxGForceBrake: this.maxGForceBrake,
+      needsCalibration: this._needsCalibration
     };
     this.listeners.forEach(cb => cb(data));
   }

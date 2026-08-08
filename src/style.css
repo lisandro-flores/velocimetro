@@ -1135,6 +1135,41 @@ body {
   transform: scale(0.95);
 }
 
+/* — Calibration Warning — */
+.dash-calib-warn {
+  position: absolute;
+  top: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: rgba(255, 171, 0, 0.15);
+  border: 1px solid var(--accent-orange);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dash-calib-warn.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.dash-calib-warn span {
+  color: var(--accent-orange);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* — Top Status Bar — */
 .dash-top-bar {
   display: flex;
