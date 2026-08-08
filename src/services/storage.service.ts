@@ -1,40 +1,52 @@
-import { STORAGE_KEY_TRIPS, STORAGE_KEY_SETTINGS } from '../utils/constants';
+import Dexie, { type Table } from 'dexie';
+import { STORAGE_KEY_SETTINGS } from '../utils/constants';
 import type { TripSummary } from './trip.service';
 import type { AppSettings } from '../utils/constants';
 import { DEFAULT_SETTINGS } from '../utils/constants';
 
+class MotoSpeedDB extends Dexie {
+  trips!: Table<TripSummary, string>;
+
+  constructor() {
+    super('MotoSpeedDB');
+    this.version(1).stores({
+      trips: 'id, startTime' // Primary key and indexed props
+    });
+  }
+}
+
+const db = new MotoSpeedDB();
+
 /**
- * Servicio de almacenamiento persistente usando localStorage.
+ * Servicio de almacenamiento persistente usando IndexedDB (trips) y localStorage (settings).
  */
 export class StorageService {
   /** Guardar viaje */
-  saveTrip(trip: TripSummary): void {
-    const trips = this.getTrips();
-    trips.unshift(trip);
+  async saveTrip(trip: TripSummary): Promise<void> {
+    await db.trips.put(trip);
     // Limitar a 100 viajes
-    if (trips.length > 100) trips.pop();
-    localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(trips));
-  }
-
-  /** Obtener todos los viajes */
-  getTrips(): TripSummary[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY_TRIPS);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
+    const count = await db.trips.count();
+    if (count > 100) {
+      const oldest = await db.trips.orderBy('startTime').first();
+      if (oldest) {
+        await db.trips.delete(oldest.id);
+      }
     }
   }
 
+  /** Obtener todos los viajes */
+  async getTrips(): Promise<TripSummary[]> {
+    return await db.trips.orderBy('startTime').reverse().toArray();
+  }
+
   /** Eliminar un viaje por ID */
-  deleteTrip(id: string): void {
-    const trips = this.getTrips().filter((t) => t.id !== id);
-    localStorage.setItem(STORAGE_KEY_TRIPS, JSON.stringify(trips));
+  async deleteTrip(id: string): Promise<void> {
+    await db.trips.delete(id);
   }
 
   /** Eliminar todos los viajes */
-  clearTrips(): void {
-    localStorage.removeItem(STORAGE_KEY_TRIPS);
+  async clearTrips(): Promise<void> {
+    await db.trips.clear();
   }
 
   /** Guardar configuración */

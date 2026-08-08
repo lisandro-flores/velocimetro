@@ -102,10 +102,10 @@ export class App {
       this.trip.reset();
       this.speedometer.resetMax();
     };
-    this.tripPanel.onSave = () => {
+    this.tripPanel.onSave = async () => {
       const summary = this.trip.getSummary();
       if (summary.distance > 0 || summary.duration > 10) {
-        this.storage.saveTrip(summary);
+        await this.storage.saveTrip(summary);
         this.trip.reset();
         this.speedometer.resetMax();
         this.refreshHistory();
@@ -121,12 +121,12 @@ export class App {
     this.history = new HistoryComponent(
       document.getElementById('view-history')!
     );
-    this.history.onDelete = (id) => {
-      this.storage.deleteTrip(id);
+    this.history.onDelete = async (id) => {
+      await this.storage.deleteTrip(id);
       this.refreshHistory();
     };
-    this.history.onClear = () => {
-      this.storage.clearTrips();
+    this.history.onClear = async () => {
+      await this.storage.clearTrips();
       this.refreshHistory();
     };
 
@@ -217,8 +217,8 @@ export class App {
     if (tab === 'history') this.refreshHistory();
   }
 
-  private refreshHistory(): void {
-    const trips = this.storage.getTrips();
+  private async refreshHistory(): Promise<void> {
+    const trips = await this.storage.getTrips();
     this.history.update(trips);
   }
 
