@@ -3,6 +3,8 @@
 export interface OBD2Data {
   rpm: number;
   speed: number;
+  engineTemp: number; // en °C
+  throttlePos: number; // en %
 }
 
 export type OBD2Callback = (data: OBD2Data) => void;
@@ -16,6 +18,11 @@ export class OBD2Service {
   
   private currentRpm = 0;
   private currentSpeed = 0;
+  private currentEngineTemp = 0;
+  private currentThrottlePos = 0;
+  
+  private pollIndex = 0;
+  private pollCommands = ['010C1\\r', '010D1\\r', '01051\\r', '01111\\r'];
 
   private listeners: OBD2Callback[] = [];
 
@@ -103,6 +110,16 @@ export class OBD2Service {
         if (parts.length >= 3) {
           this.currentSpeed = parseInt(parts[2], 16);
         }
+      } else if (line.startsWith('41 05')) {
+        const parts = line.split(' ');
+        if (parts.length >= 3) {
+          this.currentEngineTemp = parseInt(parts[2], 16) - 40;
+        }
+      } else if (line.startsWith('41 11')) {
+        const parts = line.split(' ');
+        if (parts.length >= 3) {
+          this.currentThrottlePos = (parseInt(parts[2], 16) * 100) / 255;
+        }
       }
     }
 
@@ -110,23 +127,23 @@ export class OBD2Service {
   };
 
   private startPolling() {
-    let toggle = false;
+    this.pollIndex = 0;
     this.interval = window.setInterval(() => {
       if (!this._isConnected) return;
-      // Intercalar peticiones (1Hz para velocidad, más para RPM en un escenario real, aquí simple toggle)
-      if (toggle) {
-        this.sendCmd('010C1\\r'); // RPM, 1 = wait 1 response
-      } else {
-        this.sendCmd('010D1\\r'); // Speed
-      }
-      toggle = !toggle;
-    }, 200); // 5Hz polling total (2.5Hz cada sensor)
+      
+      const cmd = this.pollCommands[this.pollIndex];
+      this.sendCmd(cmd);
+      
+      this.pollIndex = (this.pollIndex + 1) % this.pollCommands.length;
+    }, 200); // 5Hz polling total (1.25Hz cada sensor aprox)
   }
 
   private notify() {
     this.listeners.forEach(cb => cb({
       rpm: this.currentRpm,
-      speed: this.currentSpeed
+      speed: this.currentSpeed,
+      engineTemp: this.currentEngineTemp,
+      throttlePos: this.currentThrottlePos
     }));
   }
 

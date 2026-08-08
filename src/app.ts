@@ -223,6 +223,9 @@ export class App {
       try {
         this.dashboard.updateRpm(data.rpm);
         this.dashboard.updateGps({ speed: data.speed, altitude: 0, accuracy: 0, heading: 0 });
+        if (typeof this.dashboard.updateObd2Extra === 'function') {
+          this.dashboard.updateObd2Extra(data.engineTemp, data.throttlePos);
+        }
       } catch (error) {
         console.error('Error al actualizar OBD2:', error);
       }

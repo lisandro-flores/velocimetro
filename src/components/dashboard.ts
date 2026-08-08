@@ -17,6 +17,9 @@ export class DashboardComponent {
   // Data state for rendering
   private currentSpeed: number = 0;
   private currentRpm: number = 0;
+  private engineTemp: number | null = null;
+  private throttlePos: number | null = null;
+  private isHudMode: boolean = false;
   private leanAngle: number = 0;
   private maxLeanLeft: number = 0;
   private maxLeanRight: number = 0;
@@ -89,6 +92,11 @@ export class DashboardComponent {
     this.currentRpm = rpm;
   }
 
+  updateObd2Extra(temp: number, throttle: number): void {
+    if (temp !== undefined) this.engineTemp = temp;
+    if (throttle !== undefined) this.throttlePos = throttle;
+  }
+
   destroy(): void {
     if (this.clockInterval) clearInterval(this.clockInterval);
     if (this.renderFrame !== null) cancelAnimationFrame(this.renderFrame);
@@ -108,10 +116,13 @@ export class DashboardComponent {
         
         <canvas id="dash-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
 
-        <!-- Botón Fullscreen / Sensores -->
+        <!-- Botón Fullscreen / Sensores / HUD -->
         <div style="position: absolute; top: 12px; left: 12px; z-index: 10; display: flex; gap: 8px;">
           <button class="btn btn-ghost btn-sm" id="dash-fullscreen-btn" style="padding: 4px 10px; font-size: 11px; background: rgba(255,255,255,0.08); border-radius: 6px; color: #00e5ff; border: 1px solid rgba(0,229,255,0.2);">
             ⛶ PANTALLA COMPLETA
+          </button>
+          <button class="btn btn-ghost btn-sm" id="dash-hud-btn" style="padding: 4px 10px; font-size: 11px; background: rgba(255,255,255,0.08); border-radius: 6px; color: #ffab00; border: 1px solid rgba(255,171,0,0.2);">
+            HUDisplay
           </button>
         </div>
 
@@ -147,6 +158,16 @@ export class DashboardComponent {
         }
       } catch (err) {
         console.warn('Fullscreen toggle:', err);
+      }
+    });
+
+    const hudBtn = this.container.querySelector('#dash-hud-btn');
+    hudBtn?.addEventListener('click', () => {
+      this.isHudMode = !this.isHudMode;
+      if (this.isHudMode) {
+        this.dashboardView.style.transform = 'scaleX(-1)';
+      } else {
+        this.dashboardView.style.transform = 'scaleX(1)';
       }
     });
 
@@ -271,6 +292,9 @@ export class DashboardComponent {
 
       // Izquierda: Tacómetro RPM
       this.drawTelemetryRpmBar(ctx, 40, 75, 45, h - 145, rpmRatio);
+      
+      // Motor Info (Temp y Throttle)
+      this.drawEngineData(ctx, 105, 75);
 
       // Centro: Velocímetro
       const speedSize = Math.min(h * 0.45, w * 0.3);
@@ -364,6 +388,52 @@ export class DashboardComponent {
     ctx.font = "11px 'Inter', sans-serif";
     ctx.fillStyle = '#666677';
     ctx.fillText('RPM', x + w / 2, y - 5);
+  }
+
+  private drawEngineData(ctx: CanvasRenderingContext2D, x: number, y: number) {
+    if (this.engineTemp === null && this.throttlePos === null) return;
+
+    // Temp Box
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, 90, 50, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.textAlign = 'left';
+    ctx.font = "11px 'Inter', sans-serif";
+    ctx.fillStyle = '#777788';
+    ctx.fillText('TEMP', x + 10, y + 18);
+
+    ctx.font = "700 20px 'Orbitron', sans-serif";
+    const tempVal = this.engineTemp ?? 0;
+    ctx.fillStyle = tempVal > 105 ? '#ff1744' : tempVal > 95 ? '#ffab00' : '#00e5ff';
+    ctx.fillText(`${tempVal}°`, x + 10, y + 40);
+
+    // Throttle Box
+    const tY = y + 60;
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.beginPath();
+    ctx.roundRect(x, tY, 90, 50, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = "11px 'Inter', sans-serif";
+    ctx.fillStyle = '#777788';
+    ctx.fillText('THROTTLE', x + 10, tY + 18);
+
+    const thr = this.throttlePos ?? 0;
+    ctx.font = "700 18px 'Orbitron', sans-serif";
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillText(`${Math.round(thr)}%`, x + 10, tY + 40);
+    
+    // Mini barra throttle
+    ctx.fillStyle = '#161622';
+    ctx.fillRect(x + 55, tY + 28, 25, 12);
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillRect(x + 55, tY + 28, 25 * (thr / 100), 12);
   }
 
   private drawTelemetryRightPanel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
