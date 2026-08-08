@@ -1378,15 +1378,25 @@ body {
   display: none !important;
 }
 
-/* — G-Force Column (Left) — */
-.dash-left-col {
+/* — G-Force & RPM Column (Left & Right) — */
+.dash-left-col,
+.dash-right-col {
   display: flex;
-  flex-direction: column;
   justify-content: stretch;
-  width: 68px;
   flex-shrink: 0;
   height: 100%;
   min-height: 0;
+}
+
+.dash-left-col {
+  width: 68px;
+  flex-direction: column;
+}
+
+.dash-right-col {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-md);
 }
 
 .dash-gforce-col {
@@ -1453,29 +1463,30 @@ body {
   text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
 }
 
-/* — Top Horizontal RPM Graphic Bar (MotoGP / Superbike TFT) — */
-.dash-rpm-bar-hub {
-  width: 100%;
+
+/* — Left Vertical RPM Graphic Bar — */
+.dash-rpm-col {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 4px var(--space-xs);
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  align-items: center;
+  gap: 12px;
+  height: 100%;
 }
 
-.dash-rpm-bar-top {
+.dash-rpm-numeric-vert {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 0 4px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
 }
 
-.dash-rpm-numeric {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
+.dash-rpm-val {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-green);
+  line-height: 1;
+  transition: color 0.2s ease;
 }
 
 .dash-rpm-badge-lbl {
@@ -1485,34 +1496,12 @@ body {
   letter-spacing: 1px;
 }
 
-.dash-rpm-val {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--accent-green);
-  line-height: 1;
-  transition: color 0.2s ease;
-}
-
-.dash-rpm-scale {
-  display: flex;
-  gap: 10px;
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  font-family: var(--font-display);
-}
-
-.dash-rpm-scale span.tick-redline {
-  color: var(--accent-red);
-  font-weight: 800;
-}
-
 .dash-rpm-segments {
   display: flex;
+  flex-direction: column-reverse; /* Fill from bottom up */
   gap: 3px;
-  width: 100%;
-  height: 14px;
+  width: 24px;
+  height: 100%;
   padding: 2px;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -1522,7 +1511,7 @@ body {
 
 .dash-rpm-seg {
   flex: 1;
-  height: 100%;
+  width: 100%;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 2px;
   transition: background 0.04s ease, box-shadow 0.04s ease;

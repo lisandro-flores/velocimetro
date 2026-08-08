@@ -38,8 +38,16 @@ export class TachometerService {
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 2048;
       
+      // Filtro Pasa-Banda (Bandpass) para reducir ruido del viento (frecuencias altas)
+      // y resonancias subsónicas. Centrado en ~100Hz (6000 RPM de 1 cilindro = 100Hz)
+      const biquadFilter = this.audioContext.createBiquadFilter();
+      biquadFilter.type = 'bandpass';
+      biquadFilter.frequency.value = 120;
+      biquadFilter.Q.value = 1.0; 
+      
       this.source = this.audioContext.createMediaStreamSource(this.mediaStream);
-      this.source.connect(this.analyser);
+      this.source.connect(biquadFilter);
+      biquadFilter.connect(this.analyser);
       
       this._isActive = true;
       this.loop();

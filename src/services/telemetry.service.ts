@@ -35,12 +35,11 @@ export class TelemetryService {
 
   // Calibration Offsets
   private rollOffset = 0;
-  // @ts-ignore: Intentionally kept for future 3D G-force correction
-  private pitchOffset = 0;
   private rawRoll = 0;
-  private rawPitch = 0;
   private isCalibrated = false;
   private _needsCalibration = false;
+  
+  private lastMotionTime = 0;
 
   get isActive(): boolean {
     return this._isActive;
@@ -52,7 +51,6 @@ export class TelemetryService {
   calibrate(): void {
     // Current raw angles are the offsets
     this.rollOffset = this.rawRoll;
-    this.pitchOffset = this.rawPitch;
     this.isCalibrated = true;
     this._needsCalibration = false;
     this.notifyListeners();
@@ -130,7 +128,6 @@ export class TelemetryService {
 
     // We need to store the raw values so the `calibrate()` function can read them
     this.rawRoll = roll;
-    this.rawPitch = pitch;
 
     let angle = roll - this.rollOffset;
 
@@ -184,9 +181,27 @@ export class TelemetryService {
     // Convertir de m/s^2 a G
     rawG = rawG / 9.81;
 
-    // Suavizado EMA para G-Force
-    const alpha = 0.15;
-    this.currentGForceY = (alpha * rawG) + ((1 - alpha) * this.currentGForceY);
+    // Filtro Low-Pass (RC) para eliminar ruido de baches y vibración de camino
+    const now = event.timeStamp || performance.now();
+    let dt = (now - this.lastMotionTime) / 1000;
+    if (dt > 0.5 || dt <= 0) dt = 0.02; // Fallback 50Hz
+    this.lastMotionTime = now;
+
+    // Frecuencia de corte de 1.5 Hz
+    const RC = 1 / (2 * Math.PI * 1.5);
+    const alpha = dt / (RC + dt);
+
+    // Rechazo de picos físicos imposibles (ej. bache masivo que da un salto > 2G en ms)
+    if (Math.abs(rawG - this.currentGForceY) > 2.0) {
+      rawG = this.currentGForceY; 
+    }
+
+    this.currentGForceY = this.currentGForceY + alpha * (rawG - this.currentGForceY);
+
+    // Deadband para estabilizar en 0 cuando está detenido
+    if (Math.abs(this.currentGForceY) < 0.03) {
+      this.currentGForceY = 0;
+    }
 
     // Guardar máximos
     if (this.currentGForceY > this.maxGForceAccel) {

@@ -257,31 +257,17 @@ export class DashboardComponent {
           </div>
         </div>
 
-        <!-- Top Segmented LED RPM Bar Chart (Superbike TFT) -->
-        <div class="dash-rpm-bar-hub">
-          <div class="dash-rpm-bar-top">
-            <div class="dash-rpm-numeric">
-              <span class="dash-rpm-badge-lbl">RPM</span>
-              <span class="dash-rpm-val" id="dash-rpm-text">0</span>
-            </div>
-            <div class="dash-rpm-scale" id="dash-rpm-ticks"></div>
-          </div>
-          <div class="dash-rpm-segments" id="dash-rpm-segments"></div>
-        </div>
-
         <!-- Main Area (Speed + Telemetry) -->
         <div class="dash-main">
 
-          <!-- Left: G-Force Column (Sport) -->
+          <!-- Left: RPM Vertical Column -->
           <div class="dash-left-col">
-            <div class="dash-sport-only dash-gforce-col">
-              <div class="dash-gforce-label">${t('dash.accel')}</div>
-              <div class="dash-gforce-track">
-                <div class="dash-gforce-zero"></div>
-                <div class="dash-gforce-fill" id="dash-gforce-fill"></div>
+            <div class="dash-rpm-col">
+              <div class="dash-rpm-segments" id="dash-rpm-segments"></div>
+              <div class="dash-rpm-numeric-vert">
+                <span class="dash-rpm-val" id="dash-rpm-text">0</span>
+                <span class="dash-rpm-badge-lbl">RPM</span>
               </div>
-              <div class="dash-gforce-label">${t('dash.brake')}</div>
-              <div class="dash-gforce-value" id="dash-gforce-value">+0.00G</div>
             </div>
           </div>
 
@@ -296,8 +282,18 @@ export class DashboardComponent {
             </div>
           </div>
 
-          <!-- Right: Lean Angle (Sport) or Compass (Touring) -->
+          <!-- Right: G-Force + Lean/Compass -->
           <div class="dash-right-col">
+            <div class="dash-sport-only dash-gforce-col">
+              <div class="dash-gforce-label">${t('dash.accel')}</div>
+              <div class="dash-gforce-track">
+                <div class="dash-gforce-zero"></div>
+                <div class="dash-gforce-fill" id="dash-gforce-fill"></div>
+              </div>
+              <div class="dash-gforce-label">${t('dash.brake')}</div>
+              <div class="dash-gforce-value" id="dash-gforce-value">+0.00G</div>
+            </div>
+
             <!-- Sport Lean -->
             <div class="dash-sport-only dash-lean-col">
               <div class="dash-lean-header">

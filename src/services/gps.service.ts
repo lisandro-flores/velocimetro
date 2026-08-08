@@ -36,6 +36,11 @@ export class GpsService {
   private lastHeading: number | null = null;
   private _isActive = false;
 
+  // Kalman Filter state for speed
+  private kfSpeed = 0;
+  private kfError = 1;
+  private kfQ = 0.5; // Process noise
+
   get isActive(): boolean {
     return this._isActive;
   }
@@ -128,14 +133,30 @@ export class GpsService {
       this.lastHeading = heading;
     }
 
-    // 4. Suavizado Adaptativo: Mayor reactividad en aceleraciones/frenadas bruscas
-    const diff = Math.abs(currentSpeedKmh - this.smoothedSpeed);
-    const alpha = diff > 8 ? 0.75 : diff > 3 ? 0.5 : 0.3;
-    this.smoothedSpeed = (alpha * currentSpeedKmh) + ((1 - alpha) * this.smoothedSpeed);
+    // 4. Filtro de Kalman 1D para suavizado de velocidad
+    const diff = Math.abs(currentSpeedKmh - this.kfSpeed);
+    let dynamicQ = this.kfQ;
+    if (diff > 10) dynamicQ = 5;
+    else if (diff > 5) dynamicQ = 2;
 
-    // Evitar drift a baja velocidad
-    if (this.smoothedSpeed < 1.2) {
+    // Predicción
+    const pPred = this.kfError + dynamicQ;
+
+    // Actualización (R = ruido de medición basado en accuracy)
+    const R = Math.max(1, accuracy * 0.5); 
+    const K = pPred / (pPred + R);
+    this.kfSpeed = this.kfSpeed + K * (currentSpeedKmh - this.kfSpeed);
+    this.kfError = (1 - K) * pPred;
+
+    this.smoothedSpeed = this.kfSpeed;
+
+    // 5. Deadband agresivo en bajas velocidades para matar el drift del GPS
+    if (this.smoothedSpeed < 3 && accuracy > 5) {
       this.smoothedSpeed = 0;
+      this.kfSpeed = 0;
+    } else if (this.smoothedSpeed < 1.0) {
+      this.smoothedSpeed = 0;
+      this.kfSpeed = 0;
     }
 
     this.lastLat = latitude;
