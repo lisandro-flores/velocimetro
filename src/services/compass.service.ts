@@ -92,7 +92,19 @@ export class CompassService {
       return;
     }
 
-    this._heading = heading;
-    this.listeners.forEach((cb) => cb(heading));
+    let diff = heading - this._heading;
+    while (diff > 180) diff -= 360;
+    while (diff < -180) diff += 360;
+
+    // Si la diferencia es masiva (ej: encendido inicial), no suavizamos
+    if (Math.abs(diff) > 90) {
+      this._heading = heading;
+    } else {
+      const alpha = 0.2;
+      this._heading += diff * alpha;
+      this._heading = ((this._heading % 360) + 360) % 360;
+    }
+
+    this.listeners.forEach((cb) => cb(this._heading));
   }
 }

@@ -33,7 +33,7 @@ export class HistoryComponent {
 
   private render(): void {
     const tripCards = this.trips.length > 0
-      ? this.trips.map((trip) => this.renderTripCard(trip)).join('')
+      ? this.trips.map((trip, index) => this.renderTripCard(trip, index)).join('')
       : '<div class="history-empty"><span class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a3.5 3.5 0 1 0-7 0"/><path d="M12 17.5V14l-3-3 4-3 2 3h2"/></svg></span><p>No hay viajes registrados</p><p class="empty-hint">Iniciá un viaje desde el panel de viaje</p></div>';
 
     this.container.innerHTML = `
@@ -72,9 +72,9 @@ export class HistoryComponent {
     });
   }
 
-  private renderTripCard(trip: TripSummary): string {
+  private renderTripCard(trip: TripSummary, index: number): string {
     return `
-      <div class="history-card">
+      <div class="history-card" style="animation: slideIn 0.4s var(--ease-out) ${index * 0.05}s both;">
         <div class="history-card-header">
           <span class="history-date">${formatDate(trip.date)}</span>
           <button class="btn-icon history-delete-btn" data-id="${trip.id}" title="Eliminar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>

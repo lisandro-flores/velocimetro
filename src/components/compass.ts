@@ -121,7 +121,7 @@ export class CompassComponent {
       while (diff > 180) diff -= 360;
       while (diff < -180) diff += 360;
 
-      this.currentHeading += diff * 0.1;
+      this.currentHeading += diff * 0.15;
       // Normalizar a 0..360
       this.currentHeading = ((this.currentHeading % 360) + 360) % 360;
 

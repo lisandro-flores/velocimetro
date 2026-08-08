@@ -115,7 +115,9 @@ export class SettingsComponent {
               <span class="setting-desc">Ocultar barra del navegador</span>
             </div>
             <div class="setting-control">
-              <button class="btn btn-ghost btn-sm" id="setting-fullscreen">Activar</button>
+              <button class="btn btn-ghost btn-sm" id="setting-fullscreen">
+                ${document.fullscreenElement ? 'Desactivar' : 'Activar'}
+              </button>
             </div>
           </div>
         </div>

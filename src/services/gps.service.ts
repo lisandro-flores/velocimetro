@@ -30,6 +30,7 @@ export class GpsService {
   private listeners: GpsCallback[] = [];
   private errorListeners: GpsErrorCallback[] = [];
   private lastTimestamp = 0;
+  private smoothedSpeed = 0;
   private _isActive = false;
 
   get isActive(): boolean {
@@ -92,11 +93,23 @@ export class GpsService {
 
     const { latitude, longitude, altitude, heading, accuracy, speed } = position.coords;
 
+    // Ignorar lecturas con margen de error alto (>20 metros) para evitar picos irreales
+    if (accuracy > 20) return;
+
     // speed viene en m/s, convertir a km/h
-    const speedKmh = speed !== null && speed >= 0 ? speed * MS_TO_KMH : 0;
+    const rawSpeedKmh = speed !== null && speed >= 0 ? speed * MS_TO_KMH : 0;
+
+    // Suavizado Exponencial (EMA) para estabilizar la aguja
+    const alpha = 0.3;
+    this.smoothedSpeed = (alpha * rawSpeedKmh) + ((1 - alpha) * this.smoothedSpeed);
+    
+    // Si la velocidad es muy baja, forzar a 0 para evitar "drift"
+    if (this.smoothedSpeed < 1) {
+      this.smoothedSpeed = 0;
+    }
 
     const data: GpsData = {
-      speed: speedKmh,
+      speed: this.smoothedSpeed,
       latitude,
       longitude,
       altitude,

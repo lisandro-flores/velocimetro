@@ -209,10 +209,20 @@ export class SpeedometerComponent {
   }
 
   private getArcColor(t: number): string {
-    if (t < 0.4) return '#00e5ff';
-    if (t < 0.6) return '#76ff03';
-    if (t < 0.8) return '#ffab00';
-    return '#ff3d00';
+    // Interpolate from Cyan (185) to Red (15) through Green and Yellow
+    // HSL: 185 -> 100 -> 45 -> 15
+    let h: number;
+    if (t < 0.4) {
+      // 0 to 0.4: Cyan (185) to Green (100)
+      h = 185 - (t / 0.4) * 85;
+    } else if (t < 0.7) {
+      // 0.4 to 0.7: Green (100) to Yellow (45)
+      h = 100 - ((t - 0.4) / 0.3) * 55;
+    } else {
+      // 0.7 to 1.0: Yellow (45) to Red (15)
+      h = 45 - ((t - 0.7) / 0.3) * 30;
+    }
+    return `hsl(${Math.round(h)}, 100%, 50%)`;
   }
 
   private startAnimation(): void {
@@ -298,6 +308,6 @@ export class SpeedometerComponent {
       if (this.clockEl) {
         this.clockEl.textContent = formatClock();
       }
-    }, 10000);
+    }, 1000);
   }
 }

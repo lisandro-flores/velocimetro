@@ -91,6 +91,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+  /* Accessibility */
+  :focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+  }
 }
 
 #app {
@@ -234,6 +239,7 @@ body {
   stroke-linecap: round;
   filter: url(#glow);
   transition: none; /* Animated by JS */
+  will-change: transform;
 }
 
 .gauge-center {
@@ -253,7 +259,7 @@ body {
 /* Digital speed display */
 .speedo-digital {
   text-align: center;
-  margin-top: -var(--space-md);
+  margin-top: calc(-1 * var(--space-md));
 }
 
 .speedo-speed-value {
@@ -800,6 +806,11 @@ body {
   transform: scale(0.96);
 }
 
+.btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-cyan), #0097a7);
   color: var(--bg-primary);
@@ -890,14 +901,19 @@ body {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  background: none;
+  background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
   padding: var(--space-sm) 0;
-  transition: color var(--transition-fast);
+  transition: color var(--transition-fast), background var(--transition-fast);
   position: relative;
   touch-action: manipulation;
+  border-radius: var(--radius-sm);
+}
+
+.nav-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-tab::before {
@@ -996,6 +1012,14 @@ body {
   }
 }
 
+/* History responsive */
+@media (max-width: 360px) {
+  .history-card-stats {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: var(--space-md);
+  }
+}
+
 /* === Install Banner === */
 .install-banner {
   position: absolute;
@@ -1003,8 +1027,10 @@ body {
   left: 16px;
   right: 16px;
   z-index: 1000;
-  background: var(--bg-card);
-  border: 1px solid var(--accent-cyan);
+  background: rgba(26, 26, 40, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glow);
   border-radius: var(--radius-md);
   padding: var(--space-md);
   display: flex;
@@ -1052,4 +1078,9 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
