@@ -31,6 +31,9 @@ export class GpsService {
   private errorListeners: GpsErrorCallback[] = [];
   private lastTimestamp = 0;
   private smoothedSpeed = 0;
+  private lastLat: number | null = null;
+  private lastLng: number | null = null;
+  private lastHeading: number | null = null;
   private _isActive = false;
 
   get isActive(): boolean {
@@ -91,34 +94,93 @@ export class GpsService {
     if (now - this.lastTimestamp < GPS_MIN_INTERVAL) return;
     this.lastTimestamp = now;
 
-    const { latitude, longitude, altitude, heading, accuracy, speed } = position.coords;
+    const { latitude, longitude, altitude, accuracy, speed } = position.coords;
+    let heading = position.coords.heading;
 
-    // Ignorar lecturas con margen de error alto (>20 metros) para evitar picos irreales
-    if (accuracy > 20) return;
+    // Ignorar lecturas con margen de error excesivo (>25 metros) para evitar picos irreales
+    if (accuracy > 25) return;
 
-    // speed viene en m/s, convertir a km/h
-    const rawSpeedKmh = speed !== null && speed >= 0 ? speed * MS_TO_KMH : 0;
+    let currentSpeedKmh = 0;
 
-    // Suavizado Exponencial (EMA) para estabilizar la aguja
-    const alpha = 0.3;
-    this.smoothedSpeed = (alpha * rawSpeedKmh) + ((1 - alpha) * this.smoothedSpeed);
-    
-    // Si la velocidad es muy baja, forzar a 0 para evitar "drift"
-    if (this.smoothedSpeed < 1) {
+    // 1. Si el chipset GNSS da velocidad directa (hardware Doppler), usarla
+    if (speed !== null && !isNaN(speed) && speed >= 0) {
+      currentSpeedKmh = speed * MS_TO_KMH;
+    } else if (this.lastLat !== null && this.lastLng !== null && this.lastTimestamp > 0) {
+      // 2. Fallback de cálculo por delta de distancia y tiempo
+      const dt = (now - this.lastTimestamp) / 1000;
+      if (dt > 0.4 && dt < 6) {
+        const distMeters = this.calculateDistance(this.lastLat, this.lastLng, latitude, longitude);
+        if (distMeters > Math.max(3, accuracy * 0.4)) {
+          currentSpeedKmh = (distMeters / dt) * MS_TO_KMH;
+        }
+      }
+    }
+
+    // 3. Cálculo de Heading (Rumbo hacia el Norte)
+    if ((heading === null || isNaN(heading)) && this.lastLat !== null && this.lastLng !== null) {
+      if (currentSpeedKmh > 3) {
+        heading = this.calculateBearing(this.lastLat, this.lastLng, latitude, longitude);
+        this.lastHeading = heading;
+      } else {
+        heading = this.lastHeading;
+      }
+    } else if (heading !== null && !isNaN(heading)) {
+      this.lastHeading = heading;
+    }
+
+    // 4. Suavizado Adaptativo: Mayor reactividad en aceleraciones/frenadas bruscas
+    const diff = Math.abs(currentSpeedKmh - this.smoothedSpeed);
+    const alpha = diff > 8 ? 0.75 : diff > 3 ? 0.5 : 0.3;
+    this.smoothedSpeed = (alpha * currentSpeedKmh) + ((1 - alpha) * this.smoothedSpeed);
+
+    // Evitar drift a baja velocidad
+    if (this.smoothedSpeed < 1.2) {
       this.smoothedSpeed = 0;
     }
+
+    this.lastLat = latitude;
+    this.lastLng = longitude;
+    this.lastTimestamp = now;
 
     const data: GpsData = {
       speed: this.smoothedSpeed,
       latitude,
       longitude,
       altitude,
-      heading,
+      heading: this.lastHeading,
       accuracy,
       timestamp: now,
     };
 
     this.listeners.forEach((cb) => cb(data));
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  }
+
+  private calculateBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const φ1 = (lat1 * Math.PI) / 180;
+    const φ2 = (lat2 * Math.PI) / 180;
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+    const y = Math.sin(Δλ) * Math.cos(φ2);
+    const x =
+      Math.cos(φ1) * Math.sin(φ2) -
+      Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+    const θ = Math.atan2(y, x);
+    return ((θ * 180) / Math.PI + 360) % 360;
   }
 
   private handleError(error: GeolocationPositionError): void {

@@ -1445,14 +1445,90 @@ body {
 
 .dash-gforce-value {
   font-family: var(--font-display);
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 800;
   color: var(--accent-cyan);
   white-space: nowrap;
+  letter-spacing: 1.5px;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+}
+
+/* — Top Horizontal RPM Graphic Bar (MotoGP / Superbike TFT) — */
+.dash-rpm-bar-hub {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px var(--space-xs);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dash-rpm-bar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+}
+
+.dash-rpm-numeric {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.dash-rpm-badge-lbl {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 700;
   letter-spacing: 1px;
 }
 
-/* — Speed & Tachometer Column (Center) — */
+.dash-rpm-val {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--accent-green);
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.dash-rpm-scale {
+  display: flex;
+  gap: 10px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: var(--font-display);
+}
+
+.dash-rpm-scale span.tick-redline {
+  color: var(--accent-red);
+  font-weight: 800;
+}
+
+.dash-rpm-track-wrap {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.dash-rpm-track-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent-green);
+  transition: width 0.08s linear, background 0.2s ease;
+  border-radius: 3px;
+  box-shadow: 0 0 10px rgba(0, 255, 128, 0.3);
+}
+
+/* — Center Speed Column (Colossal Space Utilization) — */
 .dash-speed-col {
   flex: 1;
   display: flex;
@@ -1464,91 +1540,44 @@ body {
   height: 100%;
 }
 
-.dash-gauge-hub {
-  position: relative;
-  width: min(100%, 340px);
-  max-width: 340px;
+.dash-colossal-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xs) 0;
-}
-
-.dash-rpm-svg {
   width: 100%;
-  max-height: 140px;
-  display: block;
-}
-
-.dash-rpm-fill {
-  transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
-  will-change: stroke-dashoffset;
-}
-
-.dash-gauge-header {
-  margin-top: -110px;
-  margin-bottom: var(--space-xs);
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  z-index: 2;
-}
-
-.dash-rpm-num {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--accent-green);
-  line-height: 1;
-  transition: color 0.3s ease;
-}
-
-.dash-rpm-lbl {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-weight: 600;
-}
-
-.dash-gauge-body {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
 }
 
 .dash-speed-value {
   font-family: var(--font-display);
-  font-size: clamp(3.8rem, 14vw, 6.8rem);
-  font-weight: 800;
-  line-height: 0.95;
+  font-size: clamp(5.2rem, 24vw, 10.5rem);
+  font-weight: 900;
+  line-height: 0.9;
   color: var(--text-primary);
   text-shadow:
-    0 0 30px rgba(0, 229, 255, 0.35),
-    0 0 60px rgba(0, 229, 255, 0.15);
+    0 0 35px rgba(0, 229, 255, 0.4),
+    0 0 80px rgba(0, 229, 255, 0.18);
+  letter-spacing: -2px;
 }
 
 .dash-speed-footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-md);
-  margin-top: 4px;
+  gap: var(--space-lg);
+  margin-top: 2px;
 }
 
 .dash-speed-unit {
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   color: var(--accent-cyan);
   text-transform: uppercase;
-  letter-spacing: 3px;
-  font-weight: 700;
+  letter-spacing: 4px;
+  font-weight: 800;
 }
 
 .dash-max-badge {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   letter-spacing: 1px;
   font-weight: 600;
@@ -1557,7 +1586,8 @@ body {
 .dash-max-badge strong {
   color: var(--accent-orange);
   font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
+  font-weight: 800;
 }
 
 /* — Bottom Bar (Distance, Time, Alt) — */

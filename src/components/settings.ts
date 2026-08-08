@@ -154,6 +154,22 @@ export class SettingsComponent {
 
           <div class="setting-item">
             <div class="setting-info">
+              <span class="setting-label">${t('settings.maxRpm.title')}</span>
+              <span class="setting-desc">${t('settings.maxRpm.desc')}</span>
+            </div>
+            <div class="setting-control">
+              <select id="setting-max-rpm" class="setting-select">
+                <option value="8000" ${this.settings.maxRpm === 8000 ? 'selected' : ''}>8,000 RPM (Custom/Cruiser)</option>
+                <option value="10000" ${this.settings.maxRpm === 10000 ? 'selected' : ''}>10,000 RPM (Touring/Enduro)</option>
+                <option value="12000" ${this.settings.maxRpm === 12000 ? 'selected' : ''}>12,000 RPM (Naked/Standard)</option>
+                <option value="14000" ${this.settings.maxRpm === 14000 ? 'selected' : ''}>14,000 RPM (Sport/R-Series)</option>
+                <option value="16000" ${this.settings.maxRpm === 16000 ? 'selected' : ''}>16,000 RPM (SuperSport 600)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
               <span class="setting-label">${t('settings.wakelock.title')}</span>
               <span class="setting-desc">${t('settings.wakelock.desc')}</span>
             </div>
@@ -263,7 +279,13 @@ export class SettingsComponent {
     });
 
     engineEl.addEventListener('change', () => {
-      this.settings.engineCylinders = parseInt(engineEl.value, 10) as 1 | 2 | 3 | 4;
+      this.settings.engineCylinders = (parseInt(engineEl.value) || 1) as 1 | 2 | 3 | 4;
+      this.emitChange();
+    });
+
+    const maxRpmEl = this.container.querySelector('#setting-max-rpm') as HTMLSelectElement;
+    maxRpmEl?.addEventListener('change', () => {
+      this.settings.maxRpm = (parseInt(maxRpmEl.value) || 12000) as 8000 | 10000 | 12000 | 14000 | 16000;
       this.emitChange();
     });
 

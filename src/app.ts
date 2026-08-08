@@ -254,6 +254,7 @@ export class App {
     this.history.setUnit(safeSettings.unit);
     this.dashboard.setUnit(safeSettings.unit);
     this.dashboard.setLayout?.(safeSettings.dashboardLayout);
+    this.dashboard.setMaxRpm?.(safeSettings.maxRpm);
 
     this.alert.speedLimit = safeSettings.speedLimit;
     this.alert.enabled = safeSettings.speedAlertEnabled;

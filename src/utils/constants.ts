@@ -18,6 +18,8 @@ export const DEFAULT_SETTINGS = {
   dashboardLayout: 'sport' as 'sport' | 'minimalist' | 'touring',
   /** Número de cilindros del motor para cálculo de RPM */
   engineCylinders: 1 as 1 | 2 | 3 | 4,
+  /** Límite / Escala máxima de RPM para la gráfica */
+  maxRpm: 12000 as 8000 | 10000 | 12000 | 14000 | 16000,
 };
 
 export type AppSettings = typeof DEFAULT_SETTINGS;

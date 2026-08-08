@@ -32,13 +32,15 @@ export class DashboardComponent {
   private touringCompassArrow!: HTMLElement;
   private touringCompassText!: HTMLElement;
 
-  private rpmFillEl!: SVGPathElement;
+  private rpmFillEl!: HTMLElement;
   private rpmTextEl!: HTMLElement;
+  private rpmTicksEl!: HTMLElement;
   private maxSpeedValueEl!: HTMLElement;
 
   // Layout elements
   private dashboardView!: HTMLElement;
   private layout: 'sport' | 'minimalist' | 'touring' = 'sport';
+  private maxRpm: number = 12000;
 
   private clockInterval: number | null = null;
   public onCalibrate: (() => void) | null = null;
@@ -52,7 +54,16 @@ export class DashboardComponent {
 
   setUnit(unit: 'kmh' | 'mph'): void {
     this.unit = unit;
-    this.speedUnitEl.textContent = getSpeedUnitLabel(this.unit);
+    if (this.speedUnitEl) {
+      this.speedUnitEl.textContent = getSpeedUnitLabel(this.unit);
+    }
+  }
+
+  setMaxRpm(max: number): void {
+    if (max && !isNaN(max)) {
+      this.maxRpm = max;
+      this.renderRpmTicks();
+    }
   }
 
   updateGps(data: any): void {
@@ -72,9 +83,10 @@ export class DashboardComponent {
     // Update compass if touring
     if (this.layout === 'touring' && this.touringCompassArrow) {
       const h = (typeof data.heading === 'number' && !isNaN(data.heading)) ? data.heading : 0;
+      // North needle points to True North: rotate by -heading
       this.touringCompassArrow.style.transform = `rotate(${-h}deg)`;
       if (this.touringCompassText) {
-        this.touringCompassText.textContent = this.getHeadingString(h);
+        this.touringCompassText.textContent = `${this.getHeadingString(h)} ${Math.round(h)}°`;
       }
     }
   }
@@ -245,7 +257,21 @@ export class DashboardComponent {
           </div>
         </div>
 
-        <!-- Main Area -->
+        <!-- Top Horizontal RPM Rev-Counter Bar (TFT MotoGP style) -->
+        <div class="dash-rpm-bar-hub">
+          <div class="dash-rpm-bar-top">
+            <div class="dash-rpm-numeric">
+              <span class="dash-rpm-badge-lbl">RPM</span>
+              <span class="dash-rpm-val" id="dash-rpm-text">0</span>
+            </div>
+            <div class="dash-rpm-scale" id="dash-rpm-ticks"></div>
+          </div>
+          <div class="dash-rpm-track-wrap">
+            <div class="dash-rpm-track-fill" id="dash-rpm-fill"></div>
+          </div>
+        </div>
+
+        <!-- Main Area (Speed + Telemetry) -->
         <div class="dash-main">
 
           <!-- Left: G-Force Column (Sport) -->
@@ -261,30 +287,13 @@ export class DashboardComponent {
             </div>
           </div>
 
-          <!-- Center: Speed & Tachometer Arc -->
+          <!-- Center: Colossal Speed Display (Maximum Space) -->
           <div class="dash-speed-col">
-            <div class="dash-gauge-hub">
-              <!-- SVG Arc -->
-              <svg class="dash-rpm-svg" viewBox="0 0 280 140" xmlns="http://www.w3.org/2000/svg">
-                <!-- Track -->
-                <path d="M 25 130 A 115 115 0 0 1 255 130" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10" stroke-linecap="round"/>
-                <!-- Fill -->
-                <path id="dash-rpm-fill" d="M 25 130 A 115 115 0 0 1 255 130" fill="none" stroke="var(--accent-green)" stroke-width="10" stroke-linecap="round" stroke-dasharray="361" stroke-dashoffset="361" class="dash-rpm-fill"/>
-              </svg>
-              
-              <!-- Top RPM Reading -->
-              <div class="dash-gauge-header">
-                <span class="dash-rpm-num" id="dash-rpm-text">0</span>
-                <span class="dash-rpm-lbl">RPM</span>
-              </div>
-
-              <!-- Center Speed Display -->
-              <div class="dash-gauge-body">
-                <div class="dash-speed-value" id="dash-speed">0</div>
-                <div class="dash-speed-footer">
-                  <span class="dash-speed-unit" id="dash-speed-unit">km/h</span>
-                  <span class="dash-max-badge">MAX <strong id="dash-max-speed-value">0</strong></span>
-                </div>
+            <div class="dash-colossal-stack">
+              <div class="dash-speed-value" id="dash-speed">0</div>
+              <div class="dash-speed-footer">
+                <span class="dash-speed-unit" id="dash-speed-unit">km/h</span>
+                <span class="dash-max-badge">MAX <strong id="dash-max-speed-value">0</strong></span>
               </div>
             </div>
           </div>
@@ -314,14 +323,16 @@ export class DashboardComponent {
               <div class="dash-lean-value" id="dash-lean-current">0°</div>
             </div>
 
-            <!-- Touring Compass -->
+            <!-- Touring Compass (Points True North) -->
             <div class="dash-touring-only dash-touring-compass">
               <div class="touring-compass-circle">
                 <div class="touring-compass-arrow" id="dash-touring-compass-arrow">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l4 10-4-2-4 2 4-10z"/></svg>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12,2 17,21 12,17 7,21" fill="var(--accent-cyan)" stroke="none"/>
+                  </svg>
                 </div>
               </div>
-              <div class="touring-compass-text" id="dash-touring-compass-text">N</div>
+              <div class="touring-compass-text" id="dash-touring-compass-text">N 0°</div>
             </div>
           </div>
         </div>
@@ -365,9 +376,12 @@ export class DashboardComponent {
     this.touringCompassArrow = this.container.querySelector('.touring-compass-arrow') as HTMLElement;
     this.touringCompassText = this.container.querySelector('#dash-touring-compass-text') as HTMLElement;
 
-    this.rpmFillEl = this.container.querySelector('#dash-rpm-fill') as SVGPathElement;
+    this.rpmFillEl = this.container.querySelector('#dash-rpm-fill') as HTMLElement;
     this.rpmTextEl = this.container.querySelector('#dash-rpm-text') as HTMLElement;
+    this.rpmTicksEl = this.container.querySelector('#dash-rpm-ticks') as HTMLElement;
     this.maxSpeedValueEl = this.container.querySelector('#dash-max-speed-value') as HTMLElement;
+
+    this.renderRpmTicks();
 
     // Exit Button
     const exitBtn = this.container.querySelector('#dash-exit-btn');
@@ -408,7 +422,6 @@ export class DashboardComponent {
     // Listen for fullscreen change to show overlay again if they exit
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement) {
-        // Exited fullscreen, show overlay again
         if (overlay) overlay.style.display = 'flex';
       }
     });
@@ -420,29 +433,37 @@ export class DashboardComponent {
     });
   }
 
+  private renderRpmTicks(): void {
+    if (!this.rpmTicksEl) return;
+    const maxK = this.maxRpm / 1000;
+    const step = maxK <= 10 ? 2 : maxK <= 14 ? 2 : 2;
+    let ticksHtml = '';
+    for (let i = 0; i <= maxK; i += step) {
+      const isRedline = i >= maxK * 0.85;
+      ticksHtml += `<span class="${isRedline ? 'tick-redline' : ''}">${i}k</span>`;
+    }
+    this.rpmTicksEl.innerHTML = ticksHtml;
+  }
+
   updateRpm(rpm: number): void {
     if (!this.rpmFillEl || !this.rpmTextEl) return;
     
     this.rpmTextEl.textContent = Math.round(rpm).toString();
 
-    // Animación SVG arco (0 a 12000 RPM)
-    const MAX_RPM = 12000;
-    const clampedRpm = Math.max(0, Math.min(rpm, MAX_RPM));
-    const percentage = clampedRpm / MAX_RPM;
+    const clampedRpm = Math.max(0, Math.min(rpm, this.maxRpm));
+    const percentage = clampedRpm / this.maxRpm;
     
-    // dasharray = 361 (pi * 115). offset = 361 - (percentage * 361)
-    const offset = 361 - (percentage * 361);
-    this.rpmFillEl.style.strokeDashoffset = offset.toString();
+    this.rpmFillEl.style.width = `${(percentage * 100).toFixed(1)}%`;
 
-    // Color por rango
-    if (percentage > 0.85) {
-      this.rpmFillEl.style.stroke = 'var(--accent-red)';
+    // Dynamic gradient color by RPM range
+    if (percentage > 0.88) {
+      this.rpmFillEl.style.background = 'linear-gradient(90deg, var(--accent-green), var(--accent-yellow) 70%, var(--accent-red) 90%)';
       this.rpmTextEl.style.color = 'var(--accent-red)';
     } else if (percentage > 0.65) {
-      this.rpmFillEl.style.stroke = 'var(--accent-yellow)';
+      this.rpmFillEl.style.background = 'linear-gradient(90deg, var(--accent-green), var(--accent-yellow))';
       this.rpmTextEl.style.color = 'var(--accent-yellow)';
     } else {
-      this.rpmFillEl.style.stroke = 'var(--accent-green)';
+      this.rpmFillEl.style.background = 'var(--accent-green)';
       this.rpmTextEl.style.color = 'var(--accent-green)';
     }
   }
