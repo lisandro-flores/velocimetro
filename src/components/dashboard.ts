@@ -10,11 +10,8 @@ export class DashboardComponent {
   private dashboardView!: HTMLElement;
   private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
-
-  private startOverlay!: HTMLElement;
   private calibWarn!: HTMLElement;
 
-  private layout: 'sport' | 'minimalist' | 'touring' = 'sport';
   private maxRpm: number = 12000;
 
   // Data state for rendering
@@ -24,7 +21,7 @@ export class DashboardComponent {
   private maxLeanLeft: number = 0;
   private maxLeanRight: number = 0;
   private gForceY: number = 0;
-  private batteryPct: number = 0;
+  private batteryPct: number = 100;
   private isCharging: boolean = false;
   private distance: number = 0;
   private elapsedTime: number = 0;
@@ -57,16 +54,17 @@ export class DashboardComponent {
 
   updateGps(data: any): void {
     if (data.speed !== undefined && !isNaN(data.speed)) {
-      this.currentSpeed = data.speed * (this.unit === 'kmh' ? 3.6 : 2.23694);
+      // data.speed viene en km/h desde GpsService y OBD2Service
+      this.currentSpeed = this.unit === 'kmh' ? data.speed : data.speed * 0.621371;
     }
     
     if (data.accuracy !== undefined) {
-      this.gpsQuality = data.accuracy <= 5 ? 'excellent' : data.accuracy <= 15 ? 'good' : 'weak';
+      this.gpsQuality = data.accuracy <= 8 ? 'excellent' : data.accuracy <= 25 ? 'good' : 'weak';
     }
   }
 
   updateTrip(data: any): void {
-    this.distance = data.distance / 1000;
+    this.distance = (data.distance || 0) / 1000;
     this.elapsedTime = data.elapsedTime || 0;
   }
 
@@ -97,79 +95,58 @@ export class DashboardComponent {
   }
 
   updateLanguage(): void {
-    // Redraw or update text logic if needed
+    // Canvas se re-dibuja continuamente
   }
 
-  setLayout(layout: 'sport' | 'minimalist' | 'touring'): void {
-    if (this.layout === layout) return;
-    this.layout = layout;
+  setLayout(_layout: 'sport' | 'minimalist' | 'touring'): void {
+    // Layout adaptativo automático
   }
 
   private renderContainer(): void {
     this.container.innerHTML = `
-      <div class="dashboard-view" id="dashboard-view" style="position: relative; width: 100%; height: 100%; overflow: hidden; background: #000;">
+      <div class="dashboard-view" id="dashboard-view" style="position: relative; width: 100%; height: 100%; min-height: 380px; overflow: hidden; background: #08080c;">
         
         <canvas id="dash-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
 
-        <!-- Start Overlay (DOM overlaid on Canvas) -->
-        <div class="dash-start-overlay" id="dash-start-overlay" style="position: absolute; z-index: 10; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: rgba(0,0,0,0.8);">
-          <div class="dash-start-card">
-            <button class="btn btn-primary btn-lg" id="dash-start-btn">
-              ${t('dash.start')}
-            </button>
-          </div>
+        <!-- Botón Fullscreen / Sensores -->
+        <div style="position: absolute; top: 12px; left: 12px; z-index: 10; display: flex; gap: 8px;">
+          <button class="btn btn-ghost btn-sm" id="dash-fullscreen-btn" style="padding: 4px 10px; font-size: 11px; background: rgba(255,255,255,0.08); border-radius: 6px; color: #00e5ff; border: 1px solid rgba(0,229,255,0.2);">
+            ⛶ PANTALLA COMPLETA
+          </button>
         </div>
 
         <!-- Calibration Warning -->
-        <div class="dash-calib-warn" id="dash-calib-warn" style="display: none; position: absolute; z-index: 10; top: 10%; width: 100%; justify-content: center;">
-          <div style="background: rgba(255,171,0,0.9); padding: 8px 16px; border-radius: 8px; color: black; display: flex; align-items: center; gap: 8px;">
+        <div class="dash-calib-warn" id="dash-calib-warn" style="display: none; position: absolute; z-index: 10; top: 50px; width: 100%; justify-content: center;">
+          <div style="background: rgba(255,171,0,0.95); padding: 6px 14px; border-radius: 6px; color: #000; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px;">
             <span>${t('dash.alignWarning')}</span>
             <button class="btn btn-sm btn-dark" id="dash-calib-btn">${t('dash.calibrate')}</button>
           </div>
         </div>
-
-        <button class="btn btn-ghost btn-sm" id="dash-exit-btn" style="position: absolute; top: 10px; left: 10px; z-index: 10; padding: 4px 8px; color: #aaa; background: rgba(0,0,0,0.5);">
-          X
-        </button>
       </div>
     `;
 
     this.dashboardView = this.container.querySelector('#dashboard-view') as HTMLElement;
     this.canvas = this.container.querySelector('#dash-canvas') as HTMLCanvasElement;
     this.ctx = this.canvas.getContext('2d')!;
-
-    this.startOverlay = this.container.querySelector('#dash-start-overlay') as HTMLElement;
     this.calibWarn = this.container.querySelector('#dash-calib-warn') as HTMLElement;
 
-    const exitBtn = this.container.querySelector('#dash-exit-btn');
-    exitBtn?.addEventListener('click', () => {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(err => console.warn(err));
-      }
-      this.onExit?.();
-    });
-
-    const startBtn = this.container.querySelector('#dash-start-btn');
-    startBtn?.addEventListener('click', async () => {
+    const fsBtn = this.container.querySelector('#dash-fullscreen-btn');
+    fsBtn?.addEventListener('click', async () => {
       try {
         if (this.onStartRequested) {
           await this.onStartRequested();
         }
-        await document.documentElement.requestFullscreen().catch(e => console.warn('Fullscreen ignored', e));
-        if ('orientation' in screen && 'lock' in screen.orientation) {
-          // @ts-ignore
-          await screen.orientation.lock('landscape').catch(e => console.warn('Orientation lock failed', e));
+        if (!document.fullscreenElement) {
+          await document.documentElement.requestFullscreen().catch(() => {});
+          if ('orientation' in screen && 'lock' in screen.orientation) {
+            // @ts-ignore
+            await screen.orientation.lock('landscape').catch(() => {});
+          }
+        } else {
+          await document.exitFullscreen().catch(() => {});
         }
-        this.startOverlay.style.display = 'none';
-      } catch (e) {
-        console.error('Start failed', e);
-        this.startOverlay.style.display = 'none'; // hide anyway
-      }
-    });
-
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) {
-        if (this.startOverlay) this.startOverlay.style.display = 'flex';
+      } catch (err) {
+        console.warn('Fullscreen toggle:', err);
       }
     });
 
@@ -178,19 +155,8 @@ export class DashboardComponent {
       this.onCalibrate?.();
     });
 
-    this.resizeCanvas();
-    window.addEventListener('resize', () => this.resizeCanvas());
-
     this.updateClock();
     this.clockInterval = window.setInterval(() => this.updateClock(), 1000);
-  }
-
-  private resizeCanvas(): void {
-    if (this.dashboardView && this.canvas) {
-      const rect = this.dashboardView.getBoundingClientRect();
-      this.canvas.width = rect.width;
-      this.canvas.height = rect.height;
-    }
   }
 
   private updateClock(): void {
@@ -219,165 +185,276 @@ export class DashboardComponent {
   }
 
   private renderCanvas(): void {
-    if (!this.ctx || !this.canvas) return;
+    if (!this.ctx || !this.canvas || !this.dashboardView) return;
+
+    // Redimensionar si cambió el contenedor
+    const rect = this.dashboardView.getBoundingClientRect();
+    const targetW = Math.floor(rect.width);
+    const targetH = Math.floor(rect.height);
+
+    if (targetW > 0 && targetH > 0) {
+      if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
+        this.canvas.width = targetW;
+        this.canvas.height = targetH;
+      }
+    }
 
     const w = this.canvas.width;
     const h = this.canvas.height;
+    if (w <= 0 || h <= 0) return;
+
     const ctx = this.ctx;
 
-    // Clear
-    ctx.fillStyle = '#000000';
+    // Fondo oscuro premium estilo TFT
+    ctx.fillStyle = '#08080e';
     ctx.fillRect(0, 0, w, h);
 
+    const isLandscape = w > h;
     const rpmRatio = Math.max(0, Math.min(1, this.currentRpm / this.maxRpm));
-    
-    // RENDER RACE MODE (Speed > 15) vs TELEMETRY MODE (Speed <= 15)
     const isRaceMode = this.currentSpeed > 15;
 
-    // Shift Light - Edge Flash
+    // Shift Light - Destello de aviso de corte
     if (rpmRatio > 0.88) {
-      ctx.strokeStyle = (Math.floor(Date.now() / 100) % 2 === 0) ? '#ff0000' : '#ff4444';
-      ctx.lineWidth = 12;
+      ctx.strokeStyle = (Math.floor(Date.now() / 80) % 2 === 0) ? '#ff1744' : '#d50000';
+      ctx.lineWidth = 14;
       ctx.strokeRect(0, 0, w, h);
-    } else if (rpmRatio > 0.65 && isRaceMode) {
-       // Pre-shift light yellow outline for race mode
-       ctx.strokeStyle = 'rgba(255, 204, 0, 0.5)';
-       ctx.lineWidth = 6;
-       ctx.strokeRect(0, 0, w, h);
+    } else if (rpmRatio > 0.68 && isRaceMode) {
+      ctx.strokeStyle = 'rgba(255, 171, 0, 0.4)';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(0, 0, w, h);
     }
 
+    // Top Status Bar (Siempre visible)
+    this.drawTopBar(ctx, w);
+
+    if (isLandscape) {
+      this.renderLandscape(ctx, w, h, rpmRatio, isRaceMode);
+    } else {
+      this.renderPortrait(ctx, w, h, rpmRatio, isRaceMode);
+    }
+  }
+
+  private renderLandscape(ctx: CanvasRenderingContext2D, w: number, h: number, rpmRatio: number, isRaceMode: boolean): void {
     if (isRaceMode) {
-      // --- RACE MODE UI ---
+      // --- MODO CARRERA LANDSCAPE ---
+      // Barra Superior RPM
+      const rpmBarH = 18;
+      const topY = 48;
+      ctx.fillStyle = '#161622';
+      ctx.fillRect(30, topY, w - 60, rpmBarH);
+
+      const barFillW = (w - 60) * rpmRatio;
+      ctx.fillStyle = rpmRatio > 0.88 ? '#ff1744' : rpmRatio > 0.65 ? '#ffab00' : '#00e5ff';
+      ctx.fillRect(30, topY, barFillW, rpmBarH);
+
+      // Velocidad Gigante en el centro
+      const speedSize = Math.min(h * 0.55, w * 0.35);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      
-      // RPM Bar (Horizontal across top)
-      ctx.fillStyle = '#222';
-      ctx.fillRect(20, 40, w - 40, 20);
-      
-      ctx.fillStyle = rpmRatio > 0.88 ? '#ff0000' : rpmRatio > 0.65 ? '#ffcc00' : '#00cc00';
-      ctx.fillRect(20, 40, (w - 40) * rpmRatio, 20);
-
+      ctx.font = `900 ${Math.round(speedSize)}px 'Orbitron', sans-serif`;
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 240px sans-serif';
-      ctx.fillText(Math.round(this.currentSpeed).toString(), w / 2, h / 2 + 20);
-      
-      ctx.font = '24px sans-serif';
-      ctx.fillStyle = '#aaaaaa';
-      ctx.fillText(getSpeedUnitLabel(this.unit), w / 2, h / 2 + 150);
+      ctx.fillText(Math.round(this.currentSpeed).toString(), w / 2, h / 2 + 10);
+
+      // Unidad
+      ctx.font = `600 ${Math.round(speedSize * 0.16)}px 'Inter', sans-serif`;
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillText(getSpeedUnitLabel(this.unit).toUpperCase(), w / 2, h / 2 + speedSize * 0.42);
+
+      // Trip Info abajo
+      ctx.font = "14px 'Inter', sans-serif";
+      ctx.fillStyle = '#888899';
+      ctx.fillText(`${this.distance.toFixed(1)} ${this.unit === 'kmh' ? 'km' : 'mi'}  •  ${this.formatTime(this.elapsedTime)}`, w / 2, h - 22);
 
     } else {
-      // --- TELEMETRY MODE UI ---
-      // Left: RPM
-      this.drawTelemetryRpmBar(ctx, 40, 80, 40, h - 160, rpmRatio);
-      
-      // Center: Speed
+      // --- MODO TELEMETRÍA LANDSCAPE ---
+      const panelWidth = Math.min(220, w * 0.25);
+
+      // Izquierda: Tacómetro RPM
+      this.drawTelemetryRpmBar(ctx, 40, 75, 45, h - 145, rpmRatio);
+
+      // Centro: Velocímetro
+      const speedSize = Math.min(h * 0.45, w * 0.3);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.font = `900 ${Math.round(speedSize)}px 'Orbitron', sans-serif`;
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 160px sans-serif';
-      ctx.fillText(Math.round(this.currentSpeed).toString(), w / 2, h / 2 - 20);
-      ctx.font = '20px sans-serif';
-      ctx.fillStyle = '#aaaaaa';
-      ctx.fillText(getSpeedUnitLabel(this.unit), w / 2, h / 2 + 70);
+      ctx.fillText(Math.round(this.currentSpeed).toString(), w / 2, h / 2 - 15);
 
-      // Bottom Center: Trip Info
-      ctx.font = '16px sans-serif';
-      ctx.fillText(`${this.distance.toFixed(1)} ${this.unit === 'kmh' ? 'km' : 'mi'}  |  ${this.formatTime(this.elapsedTime)}`, w / 2, h - 40);
+      ctx.font = `600 ${Math.round(speedSize * 0.18)}px 'Inter', sans-serif`;
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillText(getSpeedUnitLabel(this.unit).toUpperCase(), w / 2, h / 2 + speedSize * 0.35);
 
-      // Right: Telemetry (Lean + G-Force)
-      this.drawTelemetryRightPanel(ctx, w - 240, 80, 200, h - 160);
+      // Distancia y tiempo
+      ctx.font = "15px 'Inter', sans-serif";
+      ctx.fillStyle = '#9999aa';
+      ctx.fillText(`${this.distance.toFixed(1)} ${this.unit === 'kmh' ? 'km' : 'mi'}  •  ${this.formatTime(this.elapsedTime)}`, w / 2, h - 35);
+
+      // Derecha: Inclinación + G-Force
+      this.drawTelemetryRightPanel(ctx, w - panelWidth - 20, 75, panelWidth, h - 145);
     }
-    
-    // Top Bar (Always visible)
-    this.drawTopBar(ctx, w);
+  }
+
+  private renderPortrait(ctx: CanvasRenderingContext2D, w: number, h: number, rpmRatio: number, isRaceMode: boolean): void {
+    // Barra RPM Superior
+    const topBarY = 48;
+    ctx.fillStyle = '#161622';
+    ctx.fillRect(20, topBarY, w - 40, 14);
+
+    const barFillW = (w - 40) * rpmRatio;
+    ctx.fillStyle = rpmRatio > 0.88 ? '#ff1744' : rpmRatio > 0.65 ? '#ffab00' : '#00e5ff';
+    ctx.fillRect(20, topBarY, barFillW, 14);
+
+    // Velocidad Principal
+    const speedSize = Math.min(w * 0.42, h * 0.35);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `900 ${Math.round(speedSize)}px 'Orbitron', sans-serif`;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(Math.round(this.currentSpeed).toString(), w / 2, h * 0.36);
+
+    ctx.font = `700 ${Math.round(speedSize * 0.18)}px 'Inter', sans-serif`;
+    ctx.fillStyle = '#00e5ff';
+    ctx.fillText(getSpeedUnitLabel(this.unit).toUpperCase(), w / 2, h * 0.36 + speedSize * 0.4);
+
+    // Si no está en modo carrera y hay espacio, mostrar telemetría
+    if (!isRaceMode && h > 460) {
+      // Inclinación
+      const leanY = h * 0.62;
+      ctx.font = "14px 'Inter', sans-serif";
+      ctx.fillStyle = '#888899';
+      ctx.fillText('ÁNGULO DE INCLINACIÓN', w / 2, leanY - 24);
+
+      ctx.font = "700 28px 'Orbitron', sans-serif";
+      ctx.fillStyle = '#00e5ff';
+      ctx.fillText(`${Math.abs(Math.round(this.leanAngle))}°`, w / 2, leanY + 4);
+
+      ctx.font = "13px 'Inter', sans-serif";
+      ctx.fillStyle = '#666677';
+      ctx.fillText(`L: ${Math.abs(Math.round(this.maxLeanLeft))}°   |   R: ${Math.abs(Math.round(this.maxLeanRight))}°`, w / 2, leanY + 28);
+
+      // G-Force
+      const gY = h * 0.78;
+      ctx.font = "14px 'Inter', sans-serif";
+      ctx.fillStyle = '#888899';
+      ctx.fillText('FUERZA G', w / 2, gY - 14);
+
+      ctx.font = "700 22px 'Orbitron', sans-serif";
+      ctx.fillStyle = this.gForceY >= 0 ? '#00e5ff' : '#ffab00';
+      ctx.fillText(`${this.gForceY >= 0 ? '+' : ''}${this.gForceY.toFixed(2)} G`, w / 2, gY + 12);
+    }
+
+    // Trip Footer
+    ctx.font = "14px 'Inter', sans-serif";
+    ctx.fillStyle = '#888899';
+    ctx.fillText(`${this.distance.toFixed(1)} ${this.unit === 'kmh' ? 'km' : 'mi'}   |   ${this.formatTime(this.elapsedTime)}`, w / 2, h - 25);
   }
 
   private drawTelemetryRpmBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, ratio: number) {
-    ctx.fillStyle = '#222';
+    ctx.fillStyle = '#161622';
     ctx.fillRect(x, y, w, h);
     const activeH = h * ratio;
     
-    ctx.fillStyle = ratio > 0.88 ? '#ff0000' : ratio > 0.65 ? '#ffcc00' : '#00cc00';
+    ctx.fillStyle = ratio > 0.88 ? '#ff1744' : ratio > 0.65 ? '#ffab00' : '#00e5ff';
     ctx.fillRect(x, y + (h - activeH), w, activeH);
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.font = '24px sans-serif';
-    ctx.fillText(Math.round(this.currentRpm).toString(), x + w / 2, y - 20);
-    ctx.font = '12px sans-serif';
-    ctx.fillStyle = '#aaa';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = "700 18px 'Orbitron', sans-serif";
+    ctx.fillText(Math.round(this.currentRpm).toString(), x + w / 2, y - 18);
+    ctx.font = "11px 'Inter', sans-serif";
+    ctx.fillStyle = '#666677';
     ctx.fillText('RPM', x + w / 2, y - 5);
   }
 
   private drawTelemetryRightPanel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-    // Lean Angle Gauge
-    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-    ctx.lineWidth = 4;
+    // Lean Angle Arc Gauge
+    const centerX = x + w / 2;
+    const centerY = y + 55;
+    const radius = 45;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.arc(x + w / 2, y + 80, 60, Math.PI, 0);
+    ctx.arc(centerX, centerY, radius, Math.PI, 0);
     ctx.stroke();
     
-    // Needle
+    // Aguja Inclinación
     const clampedLean = Math.max(-60, Math.min(60, this.leanAngle));
     const leanRad = (clampedLean - 90) * (Math.PI / 180);
-    ctx.strokeStyle = '#00ffff';
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(x + w / 2, y + 80);
-    ctx.lineTo(x + w / 2 + Math.cos(leanRad) * 60, y + 80 + Math.sin(leanRad) * 60);
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(centerX + Math.cos(leanRad) * radius, centerY + Math.sin(leanRad) * radius);
     ctx.stroke();
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#fff';
-    ctx.font = '24px sans-serif';
-    ctx.fillText(`${Math.abs(Math.round(this.leanAngle))}°`, x + w / 2, y + 110);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = "700 22px 'Orbitron', sans-serif";
+    ctx.fillText(`${Math.abs(Math.round(this.leanAngle))}°`, centerX, centerY + 28);
     
-    ctx.font = '14px sans-serif';
-    ctx.fillStyle = '#aaa';
-    ctx.fillText(`L: ${Math.abs(Math.round(this.maxLeanLeft))}°   R: ${Math.abs(Math.round(this.maxLeanRight))}°`, x + w / 2, y + 130);
+    ctx.font = "12px 'Inter', sans-serif";
+    ctx.fillStyle = '#777788';
+    ctx.fillText(`L:${Math.abs(Math.round(this.maxLeanLeft))}° R:${Math.abs(Math.round(this.maxLeanRight))}°`, centerX, centerY + 46);
 
-    // G-Force
-    ctx.fillStyle = '#222';
-    ctx.fillRect(x + w / 2 - 20, y + 160, 40, h - 160);
+    // G-Force Bar
+    const gBarTop = centerY + 65;
+    const gBarH = Math.max(40, h - (gBarTop - y) - 30);
+    const centerG = gBarTop + gBarH / 2;
     
-    // 0 is center of the bar
-    const gBarH = h - 160;
-    const centerG = y + 160 + gBarH / 2;
-    // Map -1G to +1G
-    const gH = Math.min(Math.max(-1, this.gForceY), 1) * (gBarH / 2);
+    ctx.fillStyle = '#161622';
+    ctx.fillRect(centerX - 16, gBarTop, 32, gBarH);
 
-    ctx.fillStyle = this.gForceY > 0 ? '#00ffff' : '#ff9900';
-    if (this.gForceY > 0) {
-       ctx.fillRect(x + w / 2 - 20, centerG - gH, 40, gH);
+    // Indicador central 0G
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillRect(centerX - 18, centerG - 1, 36, 2);
+
+    const clampedG = Math.max(-1, Math.min(1, this.gForceY));
+    const gFillH = clampedG * (gBarH / 2);
+
+    ctx.fillStyle = this.gForceY >= 0 ? '#00e5ff' : '#ffab00';
+    if (this.gForceY >= 0) {
+      ctx.fillRect(centerX - 16, centerG - gFillH, 32, gFillH);
     } else {
-       ctx.fillRect(x + w / 2 - 20, centerG, 40, -gH);
+      ctx.fillRect(centerX - 16, centerG, 32, -gFillH);
     }
 
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px sans-serif';
-    ctx.fillText(`${this.gForceY > 0 ? '+' : ''}${this.gForceY.toFixed(2)}G`, x + w / 2, y + 160 + gBarH + 20);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = "700 14px 'Orbitron', sans-serif";
+    ctx.fillText(`${this.gForceY >= 0 ? '+' : ''}${this.gForceY.toFixed(2)}G`, centerX, gBarTop + gBarH + 18);
   }
 
   private drawTopBar(ctx: CanvasRenderingContext2D, w: number) {
+    ctx.textBaseline = 'middle';
+
+    // Hora
     ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
-    ctx.font = '20px sans-serif';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(this.clockStr, w - 80, 20);
+    ctx.font = "600 14px 'Inter', sans-serif";
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(this.clockStr, w - 75, 24);
 
-    // Battery
-    ctx.fillStyle = '#444';
-    ctx.fillRect(w - 60, 22, 40, 16);
-    ctx.fillStyle = this.batteryPct <= 20 ? '#ff0000' : '#00cc00';
-    ctx.fillRect(w - 60, 22, 40 * (this.batteryPct / 100), 16);
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px sans-serif';
-    ctx.fillText(`${this.isCharging ? '⚡' : ''} ${Math.round(this.batteryPct)}%`, w - 10, 23);
+    // Batería
+    const batX = w - 60;
+    const batY = 17;
+    ctx.fillStyle = '#222233';
+    ctx.fillRect(batX, batY, 28, 14);
+    ctx.strokeStyle = '#444455';
+    ctx.strokeRect(batX, batY, 28, 14);
 
-    // GPS
-    ctx.fillStyle = this.gpsQuality === 'excellent' ? '#00ff00' : this.gpsQuality === 'good' ? '#ffff00' : '#ff0000';
+    const batLevel = Math.max(0, Math.min(1, this.batteryPct / 100));
+    ctx.fillStyle = this.isCharging ? '#00e676' : (this.batteryPct <= 20 ? '#ff1744' : '#00e5ff');
+    ctx.fillRect(batX + 2, batY + 2, Math.floor(24 * batLevel), 10);
+
+    // GPS Status Indicator
+    const gpsColor = this.gpsQuality === 'excellent' ? '#00e676' : this.gpsQuality === 'good' ? '#ffab00' : '#ff1744';
+    ctx.fillStyle = gpsColor;
     ctx.beginPath();
-    ctx.arc(w - 140, 30, 6, 0, Math.PI * 2);
+    ctx.arc(w - 110, 24, 5, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.font = "600 11px 'Inter', sans-serif";
+    ctx.fillStyle = '#888899';
+    ctx.textAlign = 'right';
+    ctx.fillText('GPS', w - 120, 24);
   }
 }

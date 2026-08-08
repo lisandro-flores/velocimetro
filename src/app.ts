@@ -222,9 +222,7 @@ export class App {
     this.obd2.onUpdate((data) => {
       try {
         this.dashboard.updateRpm(data.rpm);
-        // GPS Service emite speed en m/s, Dashboard asume que `data.speed` que le entra es m/s.
-        // OBD2 emite km/h, por lo tanto dividimos por 3.6 para estandarizar.
-        this.dashboard.updateGps({ speed: data.speed / 3.6, altitude: 0, accuracy: 0, heading: 0 });
+        this.dashboard.updateGps({ speed: data.speed, altitude: 0, accuracy: 0, heading: 0 });
       } catch (error) {
         console.error('Error al actualizar OBD2:', error);
       }
