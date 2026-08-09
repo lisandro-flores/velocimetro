@@ -22,7 +22,7 @@ export class OBD2Service {
   private currentThrottlePos = 0;
   
   private pollIndex = 0;
-  private pollCommands = ['010C1\\r', '010D1\\r', '01051\\r', '01111\\r'];
+  private pollCommands = ['010C1\r', '010D1\r', '01051\r', '01111\r'];
 
   private listeners: OBD2Callback[] = [];
 
@@ -59,11 +59,11 @@ export class OBD2Service {
       this.characteristic = await service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
 
       // Iniciar inicialización ELM327
-      await this.sendCmd('ATZ\\r'); // Reset
+      await this.sendCmd('ATZ\r'); // Reset
       await new Promise(r => setTimeout(r, 1000));
-      await this.sendCmd('ATE0\\r'); // Echo off
+      await this.sendCmd('ATE0\r'); // Echo off
       await new Promise(r => setTimeout(r, 500));
-      await this.sendCmd('ATL0\\r'); // Linefeeds off
+      await this.sendCmd('ATL0\r'); // Linefeeds off
       await new Promise(r => setTimeout(r, 500));
       
       // Iniciar notificaciones para recibir respuestas
@@ -95,7 +95,7 @@ export class OBD2Service {
     // ELM327 devuelve algo como '41 0C 1A F8' para RPM (1A F8 en hex = 6904 / 4 = 1726 RPM)
     // ELM327 devuelve algo como '41 0D 32' para Velocidad (32 en hex = 50 km/h)
     
-    const lines = res.replace(/\\r/g, '').split('\\n');
+    const lines = res.replace(/\r/g, '').split('\n');
     for (let line of lines) {
       line = line.trim();
       if (line.startsWith('41 0C')) {
