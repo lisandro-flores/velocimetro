@@ -7,7 +7,6 @@ const es: Dictionary = {
   'nav.speed': 'Velocidad',
   'nav.trip': 'Viaje',
   'nav.dashboard': 'Tablero',
-  'nav.compass': 'Brújula',
   'nav.history': 'Historial',
   'nav.settings': 'Config',
 
@@ -96,7 +95,6 @@ const en: Dictionary = {
   'nav.speed': 'Speed',
   'nav.trip': 'Trip',
   'nav.dashboard': 'Dashboard',
-  'nav.compass': 'Compass',
   'nav.history': 'History',
   'nav.settings': 'Settings',
 
